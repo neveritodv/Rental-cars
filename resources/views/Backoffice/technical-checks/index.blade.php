@@ -122,7 +122,7 @@
                         </ul>
                     </div>
 
-                    <!-- FILTER TOGGLE - NO BADGE -->
+                    <!-- FILTER TOGGLE -->
                     <div>
                         <a href="#filtercollapse"
                            class="filtercollapse coloumn d-inline-flex align-items-center"
@@ -133,7 +133,7 @@
 
                 </div>
 
-                <!-- SEARCH - ALWAYS ENABLED -->
+                <!-- SEARCH & ACTIONS -->
                 <div class="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
 
                     <div class="top-search me-2">
@@ -155,24 +155,27 @@
                         </div>
                     </div>
 
-<div class="mb-0">
-    @if(isset($isGlobalView) && $isGlobalView)
-        <a href="{{ route('backoffice.vehicle-documents.technical-checks.create') }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
-        </a>
-    @else
-        <a href="{{ route('backoffice.vehicles.technical-checks.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
-        </a>
-    @endif
-</div>
+                    {{-- Bouton Ajouter - contrôlé par permission CREATE --}}
+                    @can('vehicle-technical-checks.general.create')
+                        <div class="mb-0">
+                            @if(isset($isGlobalView) && $isGlobalView)
+                                <a href="{{ route('backoffice.vehicle-documents.technical-checks.create') }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
+                                </a>
+                            @else
+                                <a href="{{ route('backoffice.vehicles.technical-checks.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
+                                </a>
+                            @endif
+                        </div>
+                    @endcan
 
                 </div>
 
             </div>
 
-            <!-- FILTER COLLAPSE - HIDDEN BY DEFAULT -->
-            <div class="collapse" id="filtercollapse">
+            <!-- FILTER COLLAPSE -->
+            <div class="collapse @if(request()->has('date_from') || request()->has('date_to') || request()->has('next_date_from') || request()->has('next_date_to') || request()->has('amount_min') || request()->has('amount_max')) show @endif" id="filtercollapse">
                 <div class="filterbox p-3 mb-3 bg-light-100 rounded">
                     <div class="row align-items-end">
                         <div class="col-md-2">
@@ -254,7 +257,12 @@
 
         <!-- TABLE -->
         <div class="custom-datatable-filter table-responsive">
-            @include('Backoffice.technical-checks.partials._table')
+            @include('Backoffice.technical-checks.partials._table', [
+                'technicalChecks' => $technicalChecks,
+                'isGlobalView' => $isGlobalView ?? false,
+                'vehicle' => $vehicle ?? null,
+                'permissions' => $permissions ?? []
+            ])
         </div>
 
         <!-- PAGINATION -->

@@ -2,6 +2,7 @@
 @extends('layout.mainlayout_admin')
 
 @section('content')
+<!-- Page Wrapper -->
 <div class="page-wrapper">
     <div class="content me-0">
         <div class="row justify-content-center">
@@ -82,9 +83,13 @@
                                             <div class="mb-3">
                                                 <h6 class="fs-14 fw-semibold mb-1">Véhicule</h6>
                                                 <p class="fs-13">
-                                                    <a href="{{ route('backoffice.vehicles.show', $vehicle->id) }}" class="text-primary">
+                                                    @can('vehicles.general.view')
+                                                        <a href="{{ route('backoffice.vehicles.show', $vehicle->id) }}" class="text-primary">
+                                                            {{ $vehicle->registration_number }} - {{ $vehicle->registration_city ?? '' }}
+                                                        </a>
+                                                    @else
                                                         {{ $vehicle->registration_number }} - {{ $vehicle->registration_city ?? '' }}
-                                                    </a>
+                                                    @endcan
                                                 </p>
                                             </div>
                                         </div>
@@ -124,6 +129,8 @@
                                             </div>
                                         </div>
 
+                                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                                        @can('vehicle-vignettes.general.edit')
                                         <div class="col-lg-12">
                                             <a href="{{ route('backoffice.vehicles.vignettes.edit', [$vehicle->id, $vignette->id]) }}"
                                                class="btn btn-primary btn-sm d-inline-flex align-items-center">
@@ -131,6 +138,7 @@
                                                 Modifier
                                             </a>
                                         </div>
+                                        @endcan
 
                                     </div>
                                 </div>
@@ -142,10 +150,13 @@
                                 <div class="text-muted">
                                     <div class="d-flex align-items-center justify-content-between mb-3">
                                         <h6>Notes internes</h6>
+                                        {{-- Bouton Éditer - contrôlé par permission EDIT --}}
+                                        @can('vehicle-vignettes.general.edit')
                                         <a href="{{ route('backoffice.vehicles.vignettes.edit', [$vehicle->id, $vignette->id]) }}" 
                                            class="btn btn-sm btn-primary">
                                             <i class="ti ti-edit me-1"></i>Éditer
                                         </a>
+                                        @endcan
                                     </div>
                                     @if($vignette->notes)
                                         <div class="p-3 bg-light-100 rounded">
@@ -196,11 +207,19 @@
         </div>
     </div>
 
+    <!-- Footer-->
     <div class="footer d-sm-flex align-items-center justify-content-between bg-white p-3">
-        <p class="mb-0">2024 © Rental Car. All rights reserved.</p>
-        <p class="mb-0">v1.0</p>
+        <p class="mb-0">
+            <a href="javascript:void(0);">Privacy Policy</a>
+            <a href="javascript:void(0);" class="ms-4">Terms of Use</a>
+        </p>
+        <p>&copy; 2025 Dreamsrent, Made with <span class="text-danger">❤</span> by
+            <a href="javascript:void(0);" class="text-secondary">Dreams</a>
+        </p>
     </div>
+    <!-- /Footer-->
 </div>
+<!-- /Page Wrapper -->
 
 @include('Backoffice.vignettes.partials._modal_delete')
 @endsection

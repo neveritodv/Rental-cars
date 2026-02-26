@@ -14,8 +14,16 @@ class VehicleBrandController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of vehicle brands.
+     */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-brands.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les marques.');
+        }
+
         $query = VehicleBrand::where('agency_id', Auth::user()->agency_id)
             ->with('vehicles'); // Eager load vehicles for count
 
@@ -27,16 +35,40 @@ class VehicleBrandController extends Controller
 
         $brands = $query->latest()->paginate(15);
         
-        return view('backoffice.vehicle-brands.index', compact('brands'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-brands.general.view'),
+            'can_create' => auth()->user()->can('vehicle-brands.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-brands.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-brands.general.delete'),
+        ];
+
+        return view('backoffice.vehicle-brands.index', compact('brands', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new brand.
+     */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-brands.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des marques.');
+        }
+
         return view('backoffice.vehicle-brands.create');
     }
 
+    /**
+     * Store a newly created brand.
+     */
     public function store(VehicleBrandStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-brands.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des marques.');
+        }
+
         $data = $request->validated();
         $data['agency_id'] = Auth::user()->agency_id;
 
@@ -53,34 +85,64 @@ class VehicleBrandController extends Controller
                 ->toMediaCollection('vehicle_brand_logo');
         }
         
-        // FIXED: Use correct module name 'vehicle-brand' and the actual brand object
         $this->createNotification('store', 'vehicle-brand', $brand);
 
         return redirect()
             ->route('backoffice.vehicle-brands.index')
             ->with('toast', [
-                'title'   => 'Created',
+                'title'   => 'Créée',
                 'message' => 'Marque de véhicule créée avec succès.',
-                'dot'     => '#198754', // green
+                'dot'     => '#198754',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Display the specified brand.
+     */
     public function show(VehicleBrand $vehicleBrand)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-brands.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les marques.');
+        }
+
         $this->authorize('view', $vehicleBrand);
-        return view('backoffice.vehicle-brands.show', compact('vehicleBrand'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-brands.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-brands.general.delete'),
+        ];
+
+        return view('backoffice.vehicle-brands.show', compact('vehicleBrand', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified brand.
+     */
     public function edit(VehicleBrand $vehicleBrand)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-brands.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les marques.');
+        }
+
         $this->authorize('update', $vehicleBrand);
         return view('backoffice.vehicle-brands.edit', compact('vehicleBrand'));
     }
 
+    /**
+     * Update the specified brand.
+     */
     public function update(VehicleBrandUpdateRequest $request, VehicleBrand $vehicleBrand)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-brands.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les marques.');
+        }
+
         $this->authorize('update', $vehicleBrand);
 
         $data = $request->validated();
@@ -99,37 +161,42 @@ class VehicleBrandController extends Controller
                 ->toMediaCollection('vehicle_brand_logo');
         }
         
-        // ADDED: Create notification for update
         $this->createNotification('update', 'vehicle-brand', $vehicleBrand);
 
         return redirect()
             ->route('backoffice.vehicle-brands.index')
             ->with('toast', [
-                'title'   => 'Updated',
+                'title'   => 'Mise à jour',
                 'message' => 'Marque de véhicule mise à jour avec succès.',
-                'dot'     => '#0d6efd', // blue
+                'dot'     => '#0d6efd',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Remove the specified brand.
+     */
     public function destroy(VehicleBrand $vehicleBrand)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-brands.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les marques.');
+        }
+
         $this->authorize('delete', $vehicleBrand);
- $item->delete();
-        // Store brand data for notification before delete
+
         $brandData = clone $vehicleBrand;
         $vehicleBrand->delete();
         
-        // ADDED: Create notification for delete
         $this->createNotification('destroy', 'vehicle-brand', $brandData);
 
         return redirect()
             ->route('backoffice.vehicle-brands.index')
             ->with('toast', [
-                'title'   => 'Deleted',
+                'title'   => 'Supprimée',
                 'message' => 'Marque de véhicule supprimée.',
-                'dot'     => '#dc3545', // red
+                'dot'     => '#dc3545',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);

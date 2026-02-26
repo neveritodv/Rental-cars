@@ -67,9 +67,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.clients.edit', $client) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 

@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class FinancialTransactionController extends Controller
 {
@@ -20,14 +21,19 @@ class FinancialTransactionController extends Controller
     /**
      * Display a listing of financial transactions.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('financial-transactions.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les transactions.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = FinancialTransaction::where('agency_id', $agencyId)
             ->with(['account', 'category', 'createdBy']);
 
-        // Search
+        // 🔎 Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -42,22 +48,22 @@ class FinancialTransactionController extends Controller
             });
         }
 
-        // Filter by type
+        // 🏷️ Filter by type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Filter by account
+        // 🏦 Filter by account
         if ($request->filled('account_id')) {
             $query->where('financial_account_id', $request->account_id);
         }
 
-        // Filter by category
+        // 📂 Filter by category
         if ($request->filled('category_id')) {
             $query->where('transaction_category_id', $request->category_id);
         }
 
-        // Filter by date range
+        // 📅 Filter by date range
         if ($request->filled('date_from')) {
             $query->whereDate('date', '>=', $request->date_from);
         }
@@ -65,7 +71,7 @@ class FinancialTransactionController extends Controller
             $query->whereDate('date', '<=', $request->date_to);
         }
 
-        // Filter by amount range
+        // 💰 Filter by amount range
         if ($request->filled('amount_min')) {
             $query->where('amount', '>=', $request->amount_min);
         }
@@ -73,7 +79,7 @@ class FinancialTransactionController extends Controller
             $query->where('amount', '<=', $request->amount_max);
         }
 
-        // Sort
+        // 🔤 Sort
         $sort = $request->get('sort', 'latest');
         if ($sort === 'oldest') {
             $query->orderBy('date', 'asc');
@@ -95,7 +101,15 @@ class FinancialTransactionController extends Controller
         $accounts = FinancialAccount::where('agency_id', $agencyId)->orderBy('name')->get();
         $categories = TransactionCategory::where('agency_id', $agencyId)->orderBy('name')->get();
 
-        return view('backoffice.finance.transactions.index', compact('transactions', 'accounts', 'categories'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('financial-transactions.general.view'),
+            'can_create' => auth()->user()->can('financial-transactions.general.create'),
+            'can_edit' => auth()->user()->can('financial-transactions.general.edit'),
+            'can_delete' => auth()->user()->can('financial-transactions.general.delete'),
+        ];
+
+        return view('backoffice.finance.transactions.index', compact('transactions', 'accounts', 'categories', 'permissions'));
     }
 
     /**
@@ -103,6 +117,11 @@ class FinancialTransactionController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('financial-transactions.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des transactions.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $accounts = FinancialAccount::where('agency_id', $agencyId)->orderBy('name')->get();
@@ -116,6 +135,11 @@ class FinancialTransactionController extends Controller
      */
     public function store(FinancialTransactionStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('financial-transactions.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des transactions.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -125,7 +149,6 @@ class FinancialTransactionController extends Controller
 
             $transaction = FinancialTransaction::create($data);
             
-            // FIXED: Use correct module name 'financial-transaction' and the actual transaction object
             $this->createNotification('store', 'financial-transaction', $transaction);
             
             DB::commit();
@@ -156,11 +179,26 @@ class FinancialTransactionController extends Controller
      */
     public function show(FinancialTransaction $financialTransaction)
     {
-        //$this->authorize('view', $financialTransaction);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('financial-transactions.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les transactions.');
+        }
+
+        // Vérifier que la transaction appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialTransaction->agency_id !== $agencyId) {
+            abort(403, 'Cette transaction n\'appartient pas à votre agence.');
+        }
 
         $financialTransaction->load(['account', 'category', 'createdBy', 'related']);
 
-        return view('backoffice.finance.transactions.show', compact('financialTransaction'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('financial-transactions.general.edit'),
+            'can_delete' => auth()->user()->can('financial-transactions.general.delete'),
+        ];
+
+        return view('backoffice.finance.transactions.show', compact('financialTransaction', 'permissions'));
     }
 
     /**
@@ -168,9 +206,16 @@ class FinancialTransactionController extends Controller
      */
     public function edit(FinancialTransaction $financialTransaction)
     {
-        //$this->authorize('update', $financialTransaction);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('financial-transactions.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les transactions.');
+        }
 
+        // Vérifier que la transaction appartient à l'agence de l'utilisateur
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialTransaction->agency_id !== $agencyId) {
+            abort(403, 'Cette transaction n\'appartient pas à votre agence.');
+        }
 
         $accounts = FinancialAccount::where('agency_id', $agencyId)->orderBy('name')->get();
         $categories = TransactionCategory::where('agency_id', $agencyId)->orderBy('name')->get();
@@ -183,14 +228,22 @@ class FinancialTransactionController extends Controller
      */
     public function update(FinancialTransactionUpdateRequest $request, FinancialTransaction $financialTransaction)
     {
-       // $this->authorize('update', $financialTransaction);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('financial-transactions.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les transactions.');
+        }
+
+        // Vérifier que la transaction appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialTransaction->agency_id !== $agencyId) {
+            abort(403, 'Cette transaction n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
 
             $financialTransaction->update($request->validated());
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'financial-transaction', $financialTransaction);
 
             DB::commit();
@@ -221,7 +274,16 @@ class FinancialTransactionController extends Controller
      */
     public function destroy(FinancialTransaction $financialTransaction)
     {
-        //$this->authorize('delete', $financialTransaction);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('financial-transactions.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les transactions.');
+        }
+
+        // Vérifier que la transaction appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialTransaction->agency_id !== $agencyId) {
+            abort(403, 'Cette transaction n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
@@ -230,7 +292,6 @@ class FinancialTransactionController extends Controller
             $transactionData = clone $financialTransaction;
             $financialTransaction->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'financial-transaction', $transactionData);
             
             DB::commit();
@@ -261,6 +322,11 @@ class FinancialTransactionController extends Controller
      */
     public function summary(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('financial-transactions.general.view')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = FinancialTransaction::where('agency_id', $agencyId);

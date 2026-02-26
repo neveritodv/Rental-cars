@@ -1,32 +1,48 @@
+@props(['payment'])
+
 <div class="dropdown">
     <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
         <i class="ti ti-dots-vertical"></i>
     </button>
 
     <ul class="dropdown-menu dropdown-menu-end p-2">
+        {{-- Voir détails - contrôlé par permission VIEW --}}
+        @can('payments.general.view')
         <li>
             <a class="dropdown-item rounded-1" href="{{ route('backoffice.payments.show', $payment) }}">
                 <i class="ti ti-eye me-2"></i>Voir détails
             </a>
         </li>
+        @endcan
+
+        {{-- Modifier - contrôlé par permission EDIT --}}
+        @can('payments.general.edit')
         <li>
             <a class="dropdown-item rounded-1" href="{{ route('backoffice.payments.edit', $payment) }}">
                 <i class="ti ti-edit me-2"></i>Modifier
             </a>
         </li>
-        @if($payment->status == 'pending')
-        <li>
-            <a class="dropdown-item rounded-1 text-success" 
-               href="javascript:void(0);"
-               onclick="event.preventDefault(); if(confirm('Confirmer ce paiement ?')) { document.getElementById('confirm-payment-{{ $payment->id }}').submit(); }">
-                <i class="ti ti-check me-2"></i>Confirmer
-            </a>
-            <form id="confirm-payment-{{ $payment->id }}" action="{{ route('backoffice.payments.status', $payment) }}" method="POST" style="display: none;">
-                @csrf
-                <input type="hidden" name="status" value="confirmed">
-            </form>
-        </li>
-        @endif
+        @endcan
+
+        {{-- Confirmer - contrôlé par permission EDIT (si en attente) --}}
+        @can('payments.general.edit')
+            @if($payment->status == 'pending')
+            <li>
+                <a class="dropdown-item rounded-1 text-success" 
+                   href="javascript:void(0);"
+                   onclick="event.preventDefault(); if(confirm('Confirmer ce paiement ?')) { document.getElementById('confirm-payment-{{ $payment->id }}').submit(); }">
+                    <i class="ti ti-check me-2"></i>Confirmer
+                </a>
+                <form id="confirm-payment-{{ $payment->id }}" action="{{ route('backoffice.payments.status', $payment) }}" method="POST" style="display: none;">
+                    @csrf
+                    <input type="hidden" name="status" value="confirmed">
+                </form>
+            </li>
+            @endif
+        @endcan
+
+        {{-- Supprimer - contrôlé par permission DELETE --}}
+        @can('payments.general.delete')
         <li>
             <hr class="dropdown-divider">
         </li>
@@ -40,5 +56,6 @@
                 <i class="ti ti-trash me-2"></i>Supprimer
             </a>
         </li>
+        @endcan
     </ul>
 </div>

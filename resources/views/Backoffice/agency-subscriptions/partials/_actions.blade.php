@@ -1,26 +1,28 @@
+@props(['subscription'])
+
 <div class="dropdown">
     <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <i class="ti ti-dots-vertical"></i>
     </button>
 
     <ul class="dropdown-menu dropdown-menu-end p-2">
-
-        {{-- (اختياري) View details إذا عندك route show --}}
-        {{-- 
+        {{-- Voir - contrôlé par permission VIEW --}}
+        @can('agency-subscriptions.general.view')
         <li>
             <a class="dropdown-item rounded-1"
                href="{{ route('backoffice.agency-subscriptions.show', $subscription) }}">
-                <i class="ti ti-eye me-1"></i>Voir
+                <i class="ti ti-eye me-1"></i>Voir détails
             </a>
-        </li> 
-        --}}
+        </li>
+        @endcan
 
+        {{-- Modifier - contrôlé par permission EDIT --}}
+        @can('agency-subscriptions.general.edit')
         <li>
             <a class="dropdown-item rounded-1"
                href="javascript:void(0);"
                data-bs-toggle="modal"
                data-bs-target="#edit_subscription"
-
                data-edit-action="{{ route('backoffice.agency-subscriptions.update', $subscription) }}"
                data-subscription-agency-id="{{ $subscription->agency_id }}"
                data-subscription-plan-name="{{ $subscription->plan_name }}"
@@ -35,7 +37,13 @@
                 <i class="ti ti-edit me-1"></i>Modifier
             </a>
         </li>
+        @endcan
 
+        {{-- Supprimer - contrôlé par permission DELETE --}}
+        @can('agency-subscriptions.general.delete')
+        <li>
+            <hr class="dropdown-divider">
+        </li>
         <li>
             <a class="dropdown-item rounded-1"
                href="javascript:void(0);"
@@ -46,6 +54,6 @@
                 <i class="ti ti-trash me-1"></i>Supprimer
             </a>
         </li>
-
+        @endcan
     </ul>
 </div>

@@ -24,9 +24,13 @@
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                                 <div class="d-flex align-items-center">
                                     <span class="avatar avatar-lg me-3" style="border-radius: 10px; overflow:hidden; background-color: #f0f3f8;">
-                                        <span class="avatar-title fw-bold fs-24 text-primary">
-                                            {{ strtoupper(mb_substr($agent->full_name, 0, 2)) }}
-                                        </span>
+                                        @if($agent->avatar_url)
+                                            <img src="{{ $agent->avatar_url }}" alt="{{ $agent->full_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        @else
+                                            <span class="avatar-title fw-bold fs-24 text-primary">
+                                                {{ strtoupper(mb_substr($agent->full_name, 0, 2)) }}
+                                            </span>
+                                        @endif
                                     </span>
 
                                     <div>
@@ -140,13 +144,16 @@
                                                 </div>
                                             </div>
 
-<div class="col-lg-12">
-    <a href="{{ route('backoffice.agents.edit', $agent) }}"
-       class="btn btn-primary btn-sm d-inline-flex align-items-center">
-        <i class="ti ti-edit me-1"></i>
-        Modifier
-    </a>
-</div>
+                                            {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                                            @can('agents.general.edit')
+                                            <div class="col-lg-12">
+                                                <a href="{{ route('backoffice.agents.edit', $agent) }}"
+                                                   class="btn btn-primary btn-sm d-inline-flex align-items-center">
+                                                    <i class="ti ti-edit me-1"></i>
+                                                    Modifier
+                                                </a>
+                                            </div>
+                                            @endcan
 
                                         </div>
                                     </div>
@@ -169,6 +176,8 @@
                                     <div class="text-muted">
                                         <div class="d-flex align-items-center justify-content-between mb-3">
                                             <h6>Notes internes</h6>
+                                            {{-- Bouton Éditer - contrôlé par permission EDIT --}}
+                                            @can('agents.general.edit')
                                             <a href="javascript:void(0);" 
                                                class="btn btn-sm btn-primary"
                                                data-bs-toggle="modal"
@@ -177,6 +186,7 @@
                                                data-agent-notes="{{ $agent->notes }}">
                                                 <i class="ti ti-edit me-1"></i>Éditer
                                             </a>
+                                            @endcan
                                         </div>
                                         @if($agent->notes)
                                             <div class="p-3 bg-light-100 rounded">

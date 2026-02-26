@@ -66,10 +66,10 @@
 
                 </div>
 
-                <!-- SEARCH -->
+                <!-- SEARCH & ACTIONS -->
                 <div class="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                     <div class="top-search me-2">
-                        <div class="top-search-group">
+                        <div class="top-search-group position-relative">
                             <span class="input-icon">
                                 <i class="ti ti-search"></i>
                             </span>
@@ -79,17 +79,25 @@
                                    value="{{ request('search') }}"
                                    class="form-control"
                                    placeholder="Rechercher">
+                            @if(request('search'))
+                                <button type="button" class="btn btn-link position-absolute" style="right: 5px; top: 50%; transform: translateY(-50%); padding: 0; color: #6c757d; z-index: 10;" onclick="clearSearch()">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            @endif
                         </div>
                     </div>
 
-                    <div class="mb-0">
-                        <a href="javascript:void(0);"
-                           class="btn btn-primary d-flex align-items-center"
-                           data-bs-toggle="modal"
-                           data-bs-target="#create_subscription">
-                            <i class="ti ti-plus me-2"></i>Ajouter un abonnement
-                        </a>
-                    </div>
+                    {{-- Bouton Ajouter - contrôlé par permission CREATE --}}
+                    @can('agency-subscriptions.general.create')
+                        <div class="mb-0">
+                            <a href="javascript:void(0);"
+                               class="btn btn-primary d-flex align-items-center"
+                               data-bs-toggle="modal"
+                               data-bs-target="#create_subscription">
+                                <i class="ti ti-plus me-2"></i>Ajouter un abonnement
+                            </a>
+                        </div>
+                    @endcan
                 </div>
 
             </div>
@@ -98,108 +106,55 @@
 
 
         <!-- FILTER COLLAPSE -->
-        <div class="collapse" id="filtercollapse">
-            <div class="filterbox mb-3 d-flex align-items-center">
-                <h6 class="me-3">Filtres</h6>
-
-                <!-- STATUS -->
-                <div class="dropdown me-3">
-                    <a href="#" class="dropdown-toggle btn btn-white d-inline-flex align-items-center"
-                       data-bs-toggle="dropdown">
-                        Statut :
-                        @if(request('status')=='active') Actif
-                        @elseif(request('status')=='inactive') Inactif
-                        @elseif(request('status')=='expired') Expiré
-                        @elseif(request('status')=='trial') Essai
-                        @else Tous
-                        @endif
-                    </a>
-
-                    <ul class="dropdown-menu dropdown-menu-md p-2">
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['status'=>'active'])) }}">
-                                Actif
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['status'=>'inactive'])) }}">
-                                Inactif
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['status'=>'expired'])) }}">
-                                Expiré
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['status'=>'trial'])) }}">
-                                Essai
-                            </a>
-                        </li>
-                    </ul>
+        <div class="collapse {{ request()->has('status') || request()->has('provider') ? 'show' : '' }}" id="filtercollapse">
+            <div class="filterbox p-3 mb-3 bg-light-100 rounded">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium">Statut</label>
+                        <select name="status" form="filterForm" class="form-select" onchange="this.form.submit()">
+                            <option value="">Tous</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Actif</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactif</option>
+                            <option value="expired" {{ request('status') == 'expired' ? 'selected' : '' }}>Expiré</option>
+                            <option value="trial" {{ request('status') == 'trial' ? 'selected' : '' }}>Essai</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium">Provider</label>
+                        <select name="provider" form="filterForm" class="form-select" onchange="this.form.submit()">
+                            <option value="">Tous</option>
+                            <option value="manual" {{ request('provider') == 'manual' ? 'selected' : '' }}>manual</option>
+                            <option value="stripe" {{ request('provider') == 'stripe' ? 'selected' : '' }}>stripe</option>
+                            <option value="paypal" {{ request('provider') == 'paypal' ? 'selected' : '' }}>paypal</option>
+                            <option value="other" {{ request('provider') == 'other' ? 'selected' : '' }}>other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mt-2 d-flex align-items-end">
+                        <a href="{{ route('backoffice.agency-subscriptions.index') }}" class="btn btn-sm btn-outline-danger w-100">
+                            <i class="ti ti-x me-1"></i>Tout effacer
+                        </a>
+                    </div>
                 </div>
-
-                <!-- PROVIDER -->
-                <div class="dropdown me-3">
-                    <a href="#" class="dropdown-toggle btn btn-white d-inline-flex align-items-center"
-                       data-bs-toggle="dropdown">
-                        Provider :
-                        {{ request('provider') ?? 'Tous' }}
-                    </a>
-
-                    <ul class="dropdown-menu dropdown-menu-md p-2">
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['provider'=>'manual'])) }}">
-                                manual
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['provider'=>'stripe'])) }}">
-                                stripe
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['provider'=>'paypal'])) }}">
-                                paypal
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item"
-                               href="{{ route('backoffice.agency-subscriptions.index', array_merge(request()->all(), ['provider'=>'other'])) }}">
-                                other
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- RESET -->
-                <a href="{{ route('backoffice.agency-subscriptions.index') }}"
-                   class="text-danger links">
-                    Tout effacer
-                </a>
-
             </div>
         </div>
 
 
         <!-- TABLE -->
         <div class="custom-datatable-filter table-responsive">
-            @include('Backoffice.agency-subscriptions.partials._table', ['subscriptions'=>$subscriptions])
+            @include('Backoffice.agency-subscriptions.partials._table', ['subscriptions' => $subscriptions, 'permissions' => $permissions])
         </div>
 
         <!-- PAGINATION -->
-        <div class="table-footer">
-            <div class="d-flex justify-content-end">
+        @if($subscriptions->total() > 0)
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted">
+                Affichage de {{ $subscriptions->firstItem() }} à {{ $subscriptions->lastItem() }} sur {{ $subscriptions->total() }} abonnements
+            </div>
+            <div>
                 {{ $subscriptions->withQueryString()->links() }}
             </div>
         </div>
+        @endif
 
     </div>
 
@@ -208,7 +163,7 @@
             <a href="#">Privacy Policy</a>
             <a href="#" class="ms-4">Terms of Use</a>
         </p>
-        <p>&copy; 2025 Dreamsrent</p>
+        <p>&copy; 2025 Dreamsrent, Made with <span class="text-danger">❤</span> by <a href="#" class="text-secondary">Dreams</a></p>
     </div>
 </div>
 
@@ -217,17 +172,28 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    let searchInput = document.getElementById('searchInput');
-    let timer;
+    const searchInput = document.getElementById('searchInput');
+    const form = document.getElementById('filterForm');
 
-    searchInput.addEventListener('keyup', function () {
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-            document.getElementById('filterForm').submit();
-        }, 400);
-    });
+    if (searchInput && form) {
+        let timer;
+        searchInput.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                form.submit();
+            }, 400);
+        });
+    }
 
 });
+
+function clearSearch() {
+    const input = document.getElementById('searchInput');
+    if (input) {
+        input.value = '';
+        document.getElementById('filterForm').submit();
+    }
+}
 </script>
 
 <script>
@@ -243,18 +209,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const action = button.getAttribute('data-delete-action');
             const plan   = button.getAttribute('data-subscription-name');
 
-            // Set form action dynamically
             const form = document.getElementById('deleteSubscriptionForm');
             form.setAttribute('action', action);
 
-            // Optional: show plan name in modal
             document.getElementById('deletePlanName').textContent = plan;
         });
     }
 
 });
 </script>
-
 
 @include('Backoffice.agency-subscriptions.partials._modal_create')
 @include('Backoffice.agency-subscriptions.partials._modal_edit')

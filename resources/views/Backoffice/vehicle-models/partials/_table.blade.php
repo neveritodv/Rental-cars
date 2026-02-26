@@ -1,15 +1,56 @@
-<table class="table datatable">
+<head>
+    <style>
+        /* FIX: allow dropdowns inside tables */
+        .table-responsive,
+        .custom-datatable-filter {
+            overflow: visible !important;
+        }
+        
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #6c757d;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            color: #0d6efd;
+        }
+        .form-check {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<table class="table datatable align-middle">
     <thead class="thead-light">
         <tr>
-            <th class="no-sort">
+            {{-- Case à cocher - visible seulement si permission DELETE --}}
+            @can('vehicle-models.general.delete')
+            <th class="no-sort" width="50">
                 <div class="form-check form-check-md">
                     <input class="form-check-input" type="checkbox" id="select-all">
                 </div>
             </th>
+            @endcan
             <th>MODÈLE</th>
             <th>MARQUE</th>
             <th>STATUT</th>
+            {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+            @canany(['vehicle-models.general.view', 'vehicle-models.general.edit', 'vehicle-models.general.delete'])
             <th class="text-end no-sort">ACTIONS</th>
+            @endcanany
         </tr>
     </thead>
 
@@ -18,24 +59,33 @@
         @php
         $brandName = $model->brand->name ?? '—';
         $brandLogo = $model->brand->logo_url ?? asset('admin_assets/img/brands/toyota.svg');
+        
+        $canView = auth()->user()->can('vehicle-models.general.view');
         @endphp
 
         <tr>
-            {{-- Checkbox --}}
+            {{-- Case à cocher - visible seulement si permission DELETE --}}
+            @can('vehicle-models.general.delete')
             <td>
                 <div class="form-check form-check-md">
-                    <input class="form-check-input" type="checkbox" value="{{ $model->id }}">
+                    <input class="form-check-input model-checkbox" type="checkbox" value="{{ $model->id }}">
                 </div>
             </td>
+            @endcan
 
             {{-- Model --}}
             <td>
                 <div class="d-flex align-items-center">
                     <div>
                         <h6 class="fw-medium mb-0">
-                            <a href="javascript:void(0);">
-                                {{ $model->name }}
-                            </a>
+                            {{-- Lien vers show - contrôlé par permission VIEW --}}
+                            @if($canView)
+                                <a href="{{ route('backoffice.vehicle-models.show', $model) }}">
+                                    {{ $model->name }}
+                                </a>
+                            @else
+                                <span>{{ $model->name }}</span>
+                            @endif
                         </h6>
                     </div>
                 </div>
@@ -49,9 +99,14 @@
                     </a>
                     <div>
                         <h6 class="fw-medium mb-0">
-                            <a href="javascript:void(0);">
-                                {{ $brandName }}
-                            </a>
+                            {{-- Lien vers marque - contrôlé par permission VIEW sur marques --}}
+                            @can('vehicle-brands.general.view')
+                                <a href="{{ route('backoffice.vehicle-brands.show', $model->brand_id) }}">
+                                    {{ $brandName }}
+                                </a>
+                            @else
+                                <span>{{ $brandName }}</span>
+                            @endcan
                         </h6>
                     </div>
                 </div>
@@ -70,25 +125,49 @@
                 @endif
             </td>
 
-            {{-- Actions (EDIT / DELETE) --}}
+            {{-- Actions - visible seulement si au moins une permission d'action --}}
+            @canany(['vehicle-models.general.view', 'vehicle-models.general.edit', 'vehicle-models.general.delete'])
             <td class="text-end position-static">
                 @include('backoffice.vehicle-models.partials._actions', ['model' => $model])
             </td>
+            @endcanany
         </tr>
         @empty
         <tr>
-            <td colspan="5" class="text-center py-4">
+            @can('vehicle-models.general.delete')
+            <td></td>
+            @endcan
+            <td colspan="{{ (auth()->user()->can('vehicle-models.general.delete') ? 4 : 3) }}" class="text-center py-4">
                 <div class="text-muted">
                     <i class="ti ti-car-off fs-4 mb-2"></i>
                     <p class="mb-0">Aucun modèle trouvé.</p>
-                    @if(request('search') || request('status'))
-                        <!-- <a href="{{ route('backoffice.vehicle-models.index') }}" class="btn btn-sm btn-primary mt-3">
-                            Effacer les filtres
-                        </a> -->
-                    @endif
+                    @can('vehicle-models.general.create')
+                        <a href="javascript:void(0);" class="btn btn-sm btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#add_model">
+                            <i class="ti ti-plus me-1"></i>Ajouter un modèle
+                        </a>
+                    @endcan
                 </div>
             </td>
+            @canany(['vehicle-models.general.view', 'vehicle-models.general.edit', 'vehicle-models.general.delete'])
+            <td></td>
+            @endcanany
         </tr>
         @endforelse
     </tbody>
 </table>
+
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-models.general.delete')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.model-checkbox').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                });
+            });
+        }
+    });
+</script>
+@endcan

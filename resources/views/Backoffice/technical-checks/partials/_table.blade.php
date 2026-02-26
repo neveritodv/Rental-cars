@@ -72,11 +72,14 @@
     <table class="table datatable align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-technical-checks.general.delete')
                 <th width="50" class="text-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 
                 {{-- VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
@@ -88,24 +91,35 @@
                 <th>Prochain contrôle</th>
                 <th>Statut</th>
                 <th>Notes</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-technical-checks.general.view', 'vehicle-technical-checks.general.edit', 'vehicle-technical-checks.general.delete'])
                 <th width="80">Actions</th>
+                @endcanany
             </tr>
         </thead>
         <tbody>
             @forelse($technicalChecks as $technicalCheck)
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-technical-checks.general.delete')
                 <td class="text-center">
                     <div class="form-check">
                         <input class="form-check-input technical-check-checkbox" type="checkbox" value="{{ $technicalCheck->id }}">
                     </div>
                 </td>
+                @endcan
                 
                 {{-- SHOW VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
                     <td>
-                        <a href="{{ route('backoffice.vehicles.show', $technicalCheck->vehicle_id) }}" class="fw-medium">
-                            {{ $technicalCheck->vehicle->registration_number ?? 'N/C' }}
-                        </a>
+                        {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                        @can('vehicles.general.view')
+                            <a href="{{ route('backoffice.vehicles.show', $technicalCheck->vehicle_id) }}" class="fw-medium">
+                                {{ $technicalCheck->vehicle->registration_number ?? 'N/C' }}
+                            </a>
+                        @else
+                            <span class="fw-medium">{{ $technicalCheck->vehicle->registration_number ?? 'N/C' }}</span>
+                        @endcan
                         @if($technicalCheck->vehicle)
                             <br><small class="text-muted">{{ $technicalCheck->vehicle->registration_city ?? '' }}</small>
                         @endif
@@ -129,42 +143,58 @@
                         <span class="text-muted">—</span>
                     @endif
                 </td>
+                
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-technical-checks.general.view', 'vehicle-technical-checks.general.edit', 'vehicle-technical-checks.general.delete'])
                 <td class="text-center">
                     @include('Backoffice.technical-checks.partials._actions', ['technicalCheck' => $technicalCheck])
                 </td>
+                @endcanany
             </tr>
-@empty
-<tr>
-    <td colspan="{{ (isset($isGlobalView) && $isGlobalView) ? '8' : '7' }}" class="text-center py-5">
-        <div class="text-center">
-            <i class="ti ti-clipboard-off fs-48 text-gray-4 mb-3"></i>
-            <h5 class="mb-2">Aucun contrôle technique trouvé</h5>
-            @if(isset($isGlobalView) && $isGlobalView)
-                <p class="text-muted mb-3">Commencez par ajouter un contrôle technique</p>
-                <a href="{{ route('backoffice.vehicle-documents.technical-checks.create') }}" class="btn btn-primary mt-3">
-                    <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
-                </a>
-            @else
-                @if(isset($vehicle) && $vehicle)
-                    <p class="text-muted mb-3">Commencez par ajouter un contrôle technique</p>
-                    <a href="{{ route('backoffice.vehicles.technical-checks.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
-                    </a>
-                @else
-                    <p class="text-muted mb-3">Aucun véhicule trouvé</p>
-                    <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Créer un véhicule
-                    </a>
-                @endif
-            @endif
-        </div>
-    </td>
-</tr>
-@endempty
+            @empty
+            <tr>
+                @can('vehicle-technical-checks.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (isset($isGlobalView) && $isGlobalView ? 6 : 5) + (auth()->user()->can('vehicle-technical-checks.general.delete') ? 1 : 0) }}" class="text-center py-5">
+                    <div class="text-center">
+                        <i class="ti ti-clipboard-off fs-48 text-gray-4 mb-3"></i>
+                        <h5 class="mb-2">Aucun contrôle technique trouvé</h5>
+                        @if(isset($isGlobalView) && $isGlobalView)
+                            @can('vehicle-technical-checks.general.create')
+                                <p class="text-muted mb-3">Commencez par ajouter un contrôle technique</p>
+                                <a href="{{ route('backoffice.vehicle-documents.technical-checks.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
+                                </a>
+                            @endcan
+                        @else
+                            @if(isset($vehicle) && $vehicle)
+                                @can('vehicle-technical-checks.general.create')
+                                    <p class="text-muted mb-3">Commencez par ajouter un contrôle technique</p>
+                                    <a href="{{ route('backoffice.vehicles.technical-checks.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
+                                        <i class="ti ti-plus me-2"></i>Ajouter un contrôle technique
+                                    </a>
+                                @endcan
+                            @else
+                                <p class="text-muted mb-3">Aucun véhicule trouvé</p>
+                                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Créer un véhicule
+                                </a>
+                            @endif
+                        @endif
+                    </div>
+                </td>
+                @canany(['vehicle-technical-checks.general.view', 'vehicle-technical-checks.general.edit', 'vehicle-technical-checks.general.delete'])
+                <td></td>
+                @endcanany
+            </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
 
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-technical-checks.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
@@ -177,3 +207,4 @@
         }
     });
 </script>
+@endcan

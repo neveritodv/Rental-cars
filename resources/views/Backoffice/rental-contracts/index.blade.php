@@ -37,7 +37,6 @@
     .badge-completed { background: #d4edda; color: #155724; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     .badge-cancelled { background: #f8d7da; color: #721c24; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     
-    /* Table */
     .table-responsive { 
         overflow: visible !important; 
     }
@@ -156,12 +155,14 @@
                 </div>
 
                 <div class="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-                    <!-- Bulk PDF Export Button -->
+                    <!-- Bulk PDF Export Button - visible seulement si permission VIEW -->
+                    @can('rental-contracts.general.view')
                     <div class="mb-0 me-2">
                         <button class="btn btn-danger d-flex align-items-center" id="exportSelectedPDF">
                             <i class="ti ti-file-export me-2"></i>Exporter PDF
                         </button>
                     </div>
+                    @endcan
 
                     <!-- Search -->
                     <div class="top-search me-2">
@@ -177,12 +178,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('rental-contracts.general.create')
                     <div class="mb-0">
                         <a href="{{ route('backoffice.rental-contracts.create') }}" class="btn btn-primary d-flex align-items-center">
                             <i class="ti ti-plus me-2"></i>Nouveau contrat
                         </a>
                     </div>
+                    @endcan
                 </div>
             </div>
 
@@ -244,186 +247,7 @@
 
         <!-- Table -->
         <div class="custom-datatable-filter table-responsive">
-            <table class="table align-middle">
-                <thead class="thead-light">
-                    <tr>
-                        <th width="50" class="text-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="select-all">
-                            </div>
-                        </th>
-                        <th>N° Contrat</th>
-                        <th>Client</th>
-                        <th>Véhicule</th>
-                        <th>Dates</th>
-                        <th>Montant</th>
-                        <th>Statut</th>
-                        <th width="140">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($contracts as $contract)
-                    <tr>
-                        <td class="text-center">
-                            <div class="form-check">
-                                <input class="form-check-input contract-checkbox" type="checkbox" value="{{ $contract->id }}">
-                            </div>
-                        </td>
-                        
-                        <td>
-                            <div class="contract-info">
-                                <a href="{{ route('backoffice.rental-contracts.show', $contract) }}" class="fw-medium">
-                                    {{ $contract->contract_number }}
-                                </a>
-                                <br>
-                                <small>
-                                    <i class="ti ti-calendar me-1"></i>{{ $contract->created_at->format('d/m/Y') }}
-                                </small>
-                            </div>
-                        </td>
-                        
-                        <td>
-                            <div class="contract-info">
-                                @if($contract->primaryClient)
-                                    <span class="fw-medium">{{ $contract->primaryClient->first_name ?? '' }} {{ $contract->primaryClient->last_name ?? '' }}</span>
-                                    <br>
-                                    <small>
-                                        <i class="ti ti-phone me-1"></i>{{ $contract->primaryClient->phone ?? 'N/A' }}
-                                    </small>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </div>
-                        </td>
-                        
-                        <td>
-                            <div class="contract-info">
-                                @if($contract->vehicle)
-                                    <a href="{{ route('backoffice.vehicles.show', $contract->vehicle_id) }}" class="fw-medium">
-                                        {{ $contract->vehicle->registration_number ?? 'N/A' }}
-                                    </a>
-                                    <br>
-                                    <small>{{ $contract->vehicle->model->name ?? '' }}</small>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </div>
-                        </td>
-                        
-                        <td>
-                            <div class="contract-info">
-                                <span><i class="ti ti-calendar-check me-1"></i>{{ $contract->formatted_start_date }}</span>
-                                <br>
-                                <span><i class="ti ti-calendar-x me-1"></i>{{ $contract->formatted_end_date }}</span>
-                            </div>
-                        </td>
-                        
-                        <td>
-                            <span class="amount-badge">{{ $contract->formatted_total_amount }}</span>
-                            @if($contract->deposit_amount)
-                                <br><small class="text-muted">Caution: {{ $contract->formatted_deposit }}</small>
-                            @endif
-                        </td>
-                        
-                        <td>
-                            <span class="badge badge-{{ str_replace('_', '-', $contract->status) }}">
-                                {{ $contract->status_text }}
-                            </span>
-                            <br>
-                            <small>
-                                <i class="ti ti-clock me-1"></i>{{ $contract->acceptance_text }}
-                            </small>
-                        </td>
-                        
-                        <td class="text-center">
-                            <div class="dropdown">
-                                <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ti ti-dots-vertical"></i>
-                                </button>
-
-                                <ul class="dropdown-menu dropdown-menu-end p-2">
-
-                                    
-                                    <!-- Voir détails -->
-                                    <li>
-                                        <a class="dropdown-item rounded-1" href="{{ route('backoffice.rental-contracts.show', $contract) }}">
-                                            <i class="ti ti-eye me-2"></i>Voir détails
-                                        </a>
-                                    </li>
-                                    
-                                    <!-- Modifier -->
-                                    <li>
-                                        <a class="dropdown-item rounded-1" href="{{ route('backoffice.rental-contracts.edit', $contract) }}">
-                                            <i class="ti ti-edit me-2"></i>Modifier
-                                        </a>
-                                    </li>
-                                    
-                                    <!-- Exporter PDF -->
-                                    <li>
-                                        <a class="dropdown-item rounded-1" href="{{ route('backoffice.contracts.pdf.single', $contract->id) }}" target="_blank">
-                                            <i class="ti ti-file-text me-2" style="color: #dc3545;"></i>Exporter PDF
-                                        </a>
-                                    </li>
-
-
-                                                                                                            <!-- 
-                                - - Only in 3-dot menu -->
-                                    @if($contract->primaryClient && $contract->primaryClient->phone)
-                                    <li>
-                                        <a class="dropdown-item rounded-1 text-success" 
-                                           href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $contract->primaryClient->phone) }}?text={{ urlencode('Bonjour, voici votre contrat #' . $contract->contract_number . ' : ' . route('backoffice.contracts.pdf.single', $contract->id, true)) }}"
-                                           target="_blank">
-                                            <i class="ti ti-brand-whatsapp me-2"></i>Envoyer vers whatsapp
-                                        </a>
-                                    </li>
-                                    @else
-                                    <li>
-                                        <a class="dropdown-item rounded-1 text-muted" 
-                                           href="javascript:void(0);"
-                                           onclick="alert('Ce client n\'a pas de numéro de téléphone')">
-                                            <i class="ti ti-brand-whatsapp me-2"></i>Pas de numéro
-                                        </a>
-                                    </li>
-                                    @endif
-                                    
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-
-
-                                    
-                                    <!-- Supprimer -->
-                                    <li>
-                                        <a class="dropdown-item rounded-1 text-danger" 
-                                           href="javascript:void(0);"
-                                           data-bs-toggle="modal" 
-                                           data-bs-target="#delete_contract"
-                                           data-delete-action="{{ route('backoffice.rental-contracts.destroy', $contract) }}"
-                                           data-delete-details="Contrat <strong>{{ $contract->contract_number }}</strong>">
-                                            <i class="ti ti-trash me-2"></i>Supprimer
-                                        </a>
-                                    </li>
-                                    
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <div class="text-center">
-                                <i class="ti ti-file-text fs-48 text-gray-4 mb-3"></i>
-                                <h5 class="mb-2">Aucun contrat trouvé</h5>
-                                <p class="text-muted mb-3">Commencez par créer un nouveau contrat</p>
-                                <a href="{{ route('backoffice.rental-contracts.create') }}" class="btn btn-primary">
-                                    <i class="ti ti-plus me-2"></i>Nouveau contrat
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            @include('backoffice.rental-contracts.partials._table', ['contracts' => $contracts, 'permissions' => $permissions])
         </div>
 
         <!-- Pagination -->
@@ -476,16 +300,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterCollapse = document.getElementById('filtercollapse');
 
     if (filterToggle && filterCollapse) {
-        // Remove Bootstrap's collapse attributes to prevent interference
         filterToggle.removeAttribute('data-bs-toggle');
         
         filterToggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            // Toggle the show class
             filterCollapse.classList.toggle('show');
-            console.log('Filter toggled:', filterCollapse.classList.contains('show') ? 'open' : 'closed');
         });
     }
 
@@ -494,12 +314,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (filterCollapse && filterCollapse.classList.contains('show')) {
             if (!filterCollapse.contains(e.target) && !filterToggle.contains(e.target)) {
                 filterCollapse.classList.remove('show');
-                console.log('Filter closed by outside click');
             }
         }
     });
 
     // ==================== SELECT ALL CHECKBOXES ====================
+    @can('rental-contracts.general.delete')
     const selectAll = document.getElementById('select-all');
     if (selectAll) {
         selectAll.addEventListener('change', function() {
@@ -520,8 +340,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    @endcan
 
     // ==================== BULK PDF EXPORT ====================
+    @can('rental-contracts.general.view')
     const exportBtn = document.getElementById('exportSelectedPDF');
     if (exportBtn) {
         exportBtn.addEventListener('click', function(e) {
@@ -555,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
             form.submit();
         });
     }
+    @endcan
 
     // Initialize all dropdowns
     initializeAllDropdowns();

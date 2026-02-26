@@ -22,6 +22,11 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('invoices.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les factures.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = Invoice::where('agency_id', $agencyId)
@@ -79,7 +84,16 @@ class InvoiceController extends Controller
         // Get clients for filter
         $clients = Client::where('agency_id', $agencyId)->orderBy('first_name')->get();
 
-        return view('backoffice.invoices.index', compact('invoices', 'clients'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('invoices.general.view'),
+            'can_create' => auth()->user()->can('invoices.general.create'),
+            'can_edit' => auth()->user()->can('invoices.general.edit'),
+            'can_delete' => auth()->user()->can('invoices.general.delete'),
+            'can_update_status' => auth()->user()->can('invoices.general.edit'), // Changer statut = edit
+        ];
+
+        return view('backoffice.invoices.index', compact('invoices', 'clients', 'permissions'));
     }
 
     /**
@@ -87,6 +101,11 @@ class InvoiceController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('invoices.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des factures.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $clients = Client::where('agency_id', $agencyId)
@@ -108,6 +127,11 @@ class InvoiceController extends Controller
      */
     public function store(InvoiceStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('invoices.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des factures.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -121,7 +145,6 @@ class InvoiceController extends Controller
 
             $invoice = Invoice::create($data);
             
-            // FIXED: Use correct module name 'invoice' and the actual invoice object
             $this->createNotification('store', 'invoice', $invoice);
             
             DB::commit();
@@ -152,11 +175,22 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        //$this->authorize('view', $invoice);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('invoices.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les factures.');
+        }
 
-        $invoice->load(['client', 'rentalContract', 'agency']);
+        $invoice->load(['client', 'rentalContract', 'agency', 'items']);
 
-        return view('backoffice.invoices.show', compact('invoice'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('invoices.general.edit'),
+            'can_delete' => auth()->user()->can('invoices.general.delete'),
+            'can_update_status' => auth()->user()->can('invoices.general.edit'),
+            'can_add_items' => auth()->user()->can('invoices.general.edit'), // Ajouter items = edit
+        ];
+
+        return view('backoffice.invoices.show', compact('invoice', 'permissions'));
     }
 
     /**
@@ -164,7 +198,10 @@ class InvoiceController extends Controller
      */
     public function edit(Invoice $invoice)
     {
-        $this->authorize('update', $invoice);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('invoices.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les factures.');
+        }
 
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
@@ -179,7 +216,10 @@ class InvoiceController extends Controller
      */
     public function update(InvoiceUpdateRequest $request, Invoice $invoice)
     {
-        //$this->authorize('update', $invoice);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('invoices.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les factures.');
+        }
 
         try {
             DB::beginTransaction();
@@ -192,7 +232,6 @@ class InvoiceController extends Controller
 
             $invoice->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'invoice', $invoice);
 
             DB::commit();
@@ -223,16 +262,17 @@ class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice)
     {
-        //$this->authorize('delete', $invoice);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('invoices.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les factures.');
+        }
 
         try {
             DB::beginTransaction();
-             $item->delete();
-            // Store invoice data for notification before delete
+
             $invoiceData = clone $invoice;
             $invoice->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'invoice', $invoiceData);
             
             DB::commit();
@@ -263,7 +303,10 @@ class InvoiceController extends Controller
      */
     public function updateStatus(Request $request, Invoice $invoice)
     {
-        //$this->authorize('update', $invoice);
+        // ✅ Vérifier la permission EDIT (pour changer le statut)
+        if (!auth()->user()->can('invoices.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les factures.');
+        }
 
         $request->validate([
             'status' => ['required', 'in:draft,sent,paid,partially_paid,cancelled'],
@@ -273,7 +316,6 @@ class InvoiceController extends Controller
             $oldStatus = $invoice->status;
             $invoice->update(['status' => $request->status]);
             
-            // ADDED: Create notification for status change
             $this->createNotification('status', 'invoice', $invoice);
 
             return redirect()

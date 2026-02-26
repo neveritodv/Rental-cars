@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Backoffice;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backoffice\Agency\AgencyStoreRequest;
 use App\Http\Requests\Backoffice\Agency\AgencyUpdateRequest;
-use App\Http\Requests\Backoffice\Agency\UpdateAgencyProfileRequest; // Add this
+use App\Http\Requests\Backoffice\Agency\UpdateAgencyProfileRequest;
 use App\Models\Agency;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -16,26 +16,33 @@ class AgencyController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of agencies.
+     */
     public function index(): View
     {
-        $this->authorize('viewAny', Agency::class);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('agencies.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les agences.');
+        }
 
         $query = Agency::query();
 
         // SEARCH
         if (request()->filled('search')) {
-            $query->where('name', 'like', '%' . request('search') . '%');
+            $search = request('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%');
+            });
         }
 
-        // FAKE STATUS LOGIC (NO DATABASE COLUMN)
+        // FAKE STATUS LOGIC
         if (request()->has('status')) {
-
             if (request('status') == 0) {
-                // Inactive → force empty result
                 $query->whereRaw('1 = 0');
             }
-
-            // If status = 1 → do nothing (show all as active)
         }
 
         // SORT
@@ -49,89 +56,147 @@ class AgencyController extends Controller
 
         $agencies = $query->paginate(15)->withQueryString();
 
-        return view('backoffice.agencies.index', compact('agencies'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('agencies.general.view'),
+            'can_create' => auth()->user()->can('agencies.general.create'),
+            'can_edit' => auth()->user()->can('agencies.general.edit'),
+            'can_delete' => auth()->user()->can('agencies.general.delete'),
+        ];
+
+        return view('backoffice.agencies.index', compact('agencies', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new agency.
+     */
     public function create(): View
     {
-        $this->authorize('create', Agency::class);
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('agencies.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des agences.');
+        }
 
         return view('backoffice.agencies.create');
     }
 
+    /**
+     * Store a newly created agency in storage.
+     */
     public function store(AgencyStoreRequest $request): RedirectResponse
     {
-        $this->authorize('create', Agency::class);
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('agencies.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des agences.');
+        }
         
         $agency = Agency::create($request->validated());
         
-        // FIXED: Use correct module name 'agency' and the actual agency object
         $this->createNotification('store', 'agency', $agency);
 
         return redirect()
             ->route('backoffice.agencies.index')
             ->with('toast', [
-                'title'   => 'Created',
-                'message' => "L’agence « {$agency->name} » a été créée avec succès.",
-                'dot'     => '#198754', // green
+                'title'   => 'Créé',
+                'message' => "L'agence « {$agency->name} » a été créée avec succès.",
+                'dot'     => '#198754',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Display the specified agency.
+     */
     public function show(Agency $agency): View
     {
-        $this->authorize('view', $agency);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('agencies.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les agences.');
+        }
 
-        return view('backoffice.agencies.show', compact('agency'));
+        // Charger les relations
+        $agency->load(['users', 'subscription']);
+
+        // Statistiques
+        $stats = [
+            'total_users' => $agency->users()->count(),
+            'total_vehicles' => $agency->vehicles()->count(),
+            'total_clients' => $agency->clients()->count(),
+            'total_contracts' => $agency->contracts()->count(),
+            'total_bookings' => $agency->bookings()->count(),
+        ];
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('agencies.general.edit'),
+            'can_delete' => auth()->user()->can('agencies.general.delete'),
+        ];
+
+        return view('backoffice.agencies.show', compact('agency', 'stats', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified agency.
+     */
     public function edit(Agency $agency): View
     {
-        $this->authorize('update', $agency);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('agencies.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les agences.');
+        }
 
         return view('backoffice.agencies.edit', compact('agency'));
     }
 
+    /**
+     * Update the specified agency in storage.
+     */
     public function update(AgencyUpdateRequest $request, Agency $agency): RedirectResponse
     {
-        $this->authorize('update', $agency);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('agencies.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les agences.');
+        }
 
         $agency->update($request->validated());
         
-        // ADDED: Create notification for update
         $this->createNotification('update', 'agency', $agency);
 
         return redirect()
             ->route('backoffice.agencies.index')
             ->with('toast', [
-                'title'   => 'Updated',
-                'message' => "L’agence « {$agency->name} » a été modifiée avec succès.",
-                'dot'     => '#0d6efd', // blue
+                'title'   => 'Modifié',
+                'message' => "L'agence « {$agency->name} » a été modifiée avec succès.",
+                'dot'     => '#0d6efd',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Remove the specified agency from storage.
+     */
     public function destroy(Agency $agency): RedirectResponse
     {
-        $this->authorize('delete', $agency);
- $item->delete();
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('agencies.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les agences.');
+        }
+
         $name = $agency->name;
         
-        // Store agency data for notification before delete
         $agencyData = clone $agency;
         $agency->delete();
         
-        // ADDED: Create notification for delete
         $this->createNotification('destroy', 'agency', $agencyData);
 
         return redirect()
             ->route('backoffice.agencies.index')
             ->with('toast', [
-                'title'   => 'Deleted',
+                'title'   => 'Supprimé',
                 'message' => "L'agence « {$name} » a été supprimée avec succès.",
-                'dot'     => '#dc3545', // red
+                'dot'     => '#dc3545',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
@@ -142,9 +207,12 @@ class AgencyController extends Controller
      */
     public function profile(Agency $agency): View
     {
-        $this->authorize('view', $agency);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('agencies.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les agences.');
+        }
         
-        $user = auth()->user(); // Get the authenticated user
+        $user = auth()->user();
 
         return view('Backoffice.profile.profile-setting', [
             'agency' => $agency,
@@ -157,7 +225,10 @@ class AgencyController extends Controller
      */
     public function updateProfile(UpdateAgencyProfileRequest $request, Agency $agency): RedirectResponse
     {
-        $this->authorize('update', $agency);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('agencies.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les agences.');
+        }
 
         $agency->update([
             'name' => $request->name,
@@ -175,15 +246,14 @@ class AgencyController extends Controller
                 ->toMediaCollection('logo');
         }
 
-        // Create notification for update
         $this->createNotification('update', 'agency_profile', $agency);
 
         return redirect()
             ->route('backoffice.agencies.settings.profile', $agency)
             ->with('toast', [
-                'title'   => 'Updated',
+                'title'   => 'Modifié',
                 'message' => "Le profil de l'agence « {$agency->name} » a été mis à jour avec succès.",
-                'dot'     => '#0d6efd', // blue
+                'dot'     => '#0d6efd',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);

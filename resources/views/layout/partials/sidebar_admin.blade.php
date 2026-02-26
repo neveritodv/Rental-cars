@@ -19,40 +19,48 @@
                 <li class="menu-title"><span>Main</span></li>
                 <li>
                     <ul>
-                        @role('super-admin|admin|manager')
+                        {{-- Dashboard - visible si permission view --}}
+                        @can('dashboard.general.view')
                             <li class="{{ request()->routeIs('backoffice.dashboard') ? 'active' : '' }}">
                                 <a href="{{ route('backoffice.dashboard') }}">
                                     <i class="ti ti-layout-dashboard"></i>
                                     <span>Dashboard</span>
                                 </a>
                             </li>
-                        @endrole
+                        @endcan
                     </ul>
                 </li>
 
                 <!-- AGENCIES SECTION -->
-                @role('super-admin|admin')
+                @canany(['agencies.general.view', 'agency-subscriptions.general.view'])
                     <li class="menu-title"><span>AGENCIES</span></li>
                     <li>
                         <ul>
-                            <li class="{{ request()->routeIs('backoffice.agencies.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.agencies.index') }}">
-                                    <i class="ti ti-building"></i>
-                                    <span>Agencies</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('backoffice.agency-subscriptions.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.agency-subscriptions.index') }}">
-                                    <i class="ti ti-credit-card"></i>
-                                    <span>Subscriptions</span>
-                                </a>
-                            </li>
+                            {{-- Agencies - visible si permission view --}}
+                            @can('agencies.general.view')
+                                <li class="{{ request()->routeIs('backoffice.agencies.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.agencies.index') }}">
+                                        <i class="ti ti-building"></i>
+                                        <span>Agencies</span>
+                                    </a>
+                                </li>
+                            @endcan
+
+                            {{-- Subscriptions - visible si permission view --}}
+                            @can('agency-subscriptions.general.view')
+                                <li class="{{ request()->routeIs('backoffice.agency-subscriptions.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.agency-subscriptions.index') }}">
+                                        <i class="ti ti-credit-card"></i>
+                                        <span>Subscriptions</span>
+                                    </a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ACCÈS SECTION -->
-                @role('super-admin|admin')
+                @can('roles-permissions.general.view')
                     <li class="menu-title"><span>ACCÈS</span></li>
                     <li>
                         <ul>
@@ -64,10 +72,10 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
 
                 <!-- EMPLOYEE SECTION -->
-                @role('super-admin|admin|manager')
+                @can('agents.general.view')
                     <li class="menu-title"><span>EMPLOYEE</span></li>
                     <li>
                         <ul>
@@ -79,10 +87,10 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
 
                 <!-- CLIENTS SECTION -->
-                @role('super-admin|admin|manager')
+                @can('clients.general.view')
                     <li class="menu-title"><span>CLIENTS</span></li>
                     <li>
                         <ul>
@@ -94,10 +102,10 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
 
                 <!-- MANAGEMENT SECTION -->
-                @role('super-admin|admin|manager')
+                @can('users.general.view')
                     <li class="menu-title"><span>MANAGEMENT</span></li>
                     <li>
                         <ul>
@@ -109,162 +117,214 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
 
                 <!-- ==================== VÉHICULE SUIVI SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @canany([
+                    'vehicle-vignettes.general.view',
+                    'vehicle-insurances.general.view',
+                    'vehicle-oil-changes.general.view',
+                    'vehicle-technical-checks.general.view',
+                    'vehicle-controls.general.view',
+                    'vehicle-control-items.general.view'
+                ])
                     <li class="menu-title"><span>VÉHICULE SUIVI</span></li>
                     <li>
                         <ul>
-                            <li
-                                class="{{ request()->routeIs('backoffice.vehicles.vignettes.index') && request('vehicle') == 'all' ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicles.vignettes.index', ['vehicle' => 'all']) }}">
-                                    <i class="ti ti-ticket"></i>
-                                    <span>Vignettes</span>
-                                </a>
-                            </li>
-                            <li
-                                class="{{ request()->routeIs('backoffice.vehicles.insurances.index') && request('vehicle') == 'all' ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicles.insurances.index', ['vehicle' => 'all']) }}">
-                                    <i class="ti ti-shield"></i>
-                                    <span>Assurances</span>
-                                </a>
-                            </li>
-                            <li
-                                class="{{ request()->routeIs('backoffice.vehicles.oil-changes.index') && request('vehicle') == 'all' ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicles.oil-changes.index', ['vehicle' => 'all']) }}">
-                                    <i class="ti ti-droplet"></i>
-                                    <span>Vidanges</span>
-                                </a>
-                            </li>
-                            <li
-                                class="{{ request()->routeIs('backoffice.vehicles.technical-checks.index') && request('vehicle') == 'all' ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicles.technical-checks.index', ['vehicle' => 'all']) }}">
-                                    <i class="ti ti-clipboard-check"></i>
-                                    <span>Contrôle technique</span>
-                                </a>
-                            </li>
+                            {{-- Vignettes - visible si permission view --}}
+                            @can('vehicle-vignettes.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicles.vignettes.index') && request('vehicle') == 'all' ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicles.vignettes.index', ['vehicle' => 'all']) }}">
+                                        <i class="ti ti-ticket"></i>
+                                        <span>Vignettes</span>
+                                    </a>
+                                </li>
+                            @endcan
+
+                            {{-- Assurances - visible si permission view --}}
+                            @can('vehicle-insurances.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicles.insurances.index') && request('vehicle') == 'all' ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicles.insurances.index', ['vehicle' => 'all']) }}">
+                                        <i class="ti ti-shield"></i>
+                                        <span>Assurances</span>
+                                    </a>
+                                </li>
+                            @endcan
+
+                            {{-- Vidanges - visible si permission view --}}
+                            @can('vehicle-oil-changes.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicles.oil-changes.index') && request('vehicle') == 'all' ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicles.oil-changes.index', ['vehicle' => 'all']) }}">
+                                        <i class="ti ti-droplet"></i>
+                                        <span>Vidanges</span>
+                                    </a>
+                                </li>
+                            @endcan
+
+                            {{-- Contrôle technique - visible si permission view --}}
+                            @can('vehicle-technical-checks.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicles.technical-checks.index') && request('vehicle') == 'all' ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicles.technical-checks.index', ['vehicle' => 'all']) }}">
+                                        <i class="ti ti-clipboard-check"></i>
+                                        <span>Contrôle technique</span>
+                                    </a>
+                                </li>
+                            @endcan
 
                             <!-- Contrôles Section with Submenu -->
-                            <li class="submenu">
-                                <a href="javascript:void(0);"
-                                    class="{{ request()->routeIs('backoffice.controls.*') || request()->routeIs('backoffice.control-items.*') ? 'active subdrop' : '' }}">
-                                    <i class="ti ti-clipboard-list"></i>
-                                    <span>Contrôles</span>
-                                    <span class="menu-arrow"></span>
-                                </a>
-                                <ul>
-                                    <li>
-                                        <a href="{{ route('backoffice.controls.index') }}"
-                                            class="{{ request()->routeIs('backoffice.controls.*') && !request()->routeIs('backoffice.control-items.*') ? 'active' : '' }}">
-                                            <i class="ti ti-list me-1"></i>
-                                            Tous les contrôles
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('backoffice.control-items.index') }}"
-                                            class="{{ request()->routeIs('backoffice.control-items.*') ? 'active' : '' }}">
-                                            <i class="ti ti-checklist me-1"></i>
-                                            Tous les éléments
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                            @canany(['vehicle-controls.general.view', 'vehicle-control-items.general.view'])
+                                <li class="submenu">
+                                    <a href="javascript:void(0);"
+                                        class="{{ request()->routeIs('backoffice.controls.*') || request()->routeIs('backoffice.control-items.*') ? 'active subdrop' : '' }}">
+                                        <i class="ti ti-clipboard-list"></i>
+                                        <span>Contrôles</span>
+                                        <span class="menu-arrow"></span>
+                                    </a>
+                                    <ul>
+                                        {{-- Tous les contrôles - visible si permission view --}}
+                                        @can('vehicle-controls.general.view')
+                                            <li>
+                                                <a href="{{ route('backoffice.controls.index') }}"
+                                                    class="{{ request()->routeIs('backoffice.controls.*') && !request()->routeIs('backoffice.control-items.*') ? 'active' : '' }}">
+                                                    <i class="ti ti-list me-1"></i>
+                                                    Tous les contrôles
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        
+                                        {{-- Tous les éléments - visible si permission view --}}
+                                        @can('vehicle-control-items.general.view')
+                                            <li>
+                                                <a href="{{ route('backoffice.control-items.index') }}"
+                                                    class="{{ request()->routeIs('backoffice.control-items.*') ? 'active' : '' }}">
+                                                    <i class="ti ti-checklist me-1"></i>
+                                                    Tous les éléments
+                                                </a>
+                                            </li>
+                                        @endcan
+                                    </ul>
+                                </li>
+                            @endcanany
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ==================== CONTRATS SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @canany(['rental-contracts.general.view', 'contract-clients.general.view'])
                     <li class="menu-title"><span>CONTRATS</span></li>
                     <li>
                         <ul>
-                            <!-- Contrats - List all contracts -->
-                            <li class="{{ request()->routeIs('backoffice.rental-contracts.index') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.rental-contracts.index') }}">
-                                    <i class="ti ti-file-text"></i>
-                                    <span>Contrats</span>
-                                </a>
-                            </li>
+                            {{-- Contrats - visible si permission view --}}
+                            @can('rental-contracts.general.view')
+                                <li class="{{ request()->routeIs('backoffice.rental-contracts.index') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.rental-contracts.index') }}">
+                                        <i class="ti ti-file-text"></i>
+                                        <span>Contrats</span>
+                                    </a>
+                                </li>
+                            @endcan
 
-                            <!-- Clients du contrat - Manage relationships -->
-                            <li class="{{ request()->routeIs('backoffice.contract-clients.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.contract-clients.index') }}">
-                                    <i class="ti ti-users"></i>
-                                    <span>Clients du contrat</span>
-                                </a>
-                            </li>
+                            {{-- Clients du contrat - visible si permission view --}}
+                            @can('contract-clients.general.view')
+                                <li class="{{ request()->routeIs('backoffice.contract-clients.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.contract-clients.index') }}">
+                                        <i class="ti ti-users"></i>
+                                        <span>Clients du contrat</span>
+                                    </a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ==================== VÉHICULES SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @canany(['vehicles.general.view', 'vehicle-credits.general.view', 'vehicle-brands.general.view', 'vehicle-models.general.view'])
                     <li class="menu-title"><span>VÉHICULES</span></li>
                     <li>
                         <ul>
-                            <!-- Cars - Liste des véhicules -->
-                            <li
-                                class="{{ request()->routeIs('backoffice.vehicles.index') && !request()->routeIs('backoffice.vehicles.vignettes.*', 'backoffice.vehicles.insurances.*', 'backoffice.vehicles.oil-changes.*', 'backoffice.vehicle-credits.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicles.index') }}">
-                                    <i class="ti ti-car"></i>
-                                    <span>Cars</span>
-                                </a>
-                            </li>
+                            {{-- Cars - visible si permission view --}}
+                            @can('vehicles.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicles.index') && !request()->routeIs('backoffice.vehicles.vignettes.*', 'backoffice.vehicles.insurances.*', 'backoffice.vehicles.oil-changes.*', 'backoffice.vehicle-credits.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicles.index') }}">
+                                        <i class="ti ti-car"></i>
+                                        <span>Cars</span>
+                                    </a>
+                                </li>
+                            @endcan
 
-                            <!-- ✅ CREDITS - Nouvel onglet pour les crédits véhicules -->
-                            <li class="{{ request()->routeIs('backoffice.vehicle-credits.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.vehicle-credits.index') }}">
-                                    <i class="ti ti-credit-card"></i>
-                                    <span>Crédits</span>
-                                    @php
-                                        $user = auth()->user();
-                                        $agency = $user->agency;
-                                        $latePayments = 0;
-                                        if (class_exists('App\Models\VehicleCredit')) {
-                                            $latePayments = \App\Models\CreditPayment::whereHas('credit', function($q) use ($agency) {
-                                                $q->where('agency_id', $agency->id)->where('status', 'active');
-                                            })
-                                            ->where('status', 'pending')
-                                            ->where('due_date', '<', now())
-                                            ->count();
-                                        }
-                                    @endphp
-                                    @if($latePayments > 0)
-                                        <span class="badge bg-danger float-end">{{ $latePayments }}</span>
-                                    @endif
-                                </a>
-                            </li>
+                            {{-- Crédits - FIXED VERSION with null checking --}}
+                            @can('vehicle-credits.general.view')
+                                <li class="{{ request()->routeIs('backoffice.vehicle-credits.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.vehicle-credits.index') }}">
+                                        <i class="ti ti-credit-card"></i>
+                                        <span>Crédits</span>
+                                        @php
+                                            $latePayments = 0;
+                                            $user = auth()->user();
+                                            
+                                            // Only calculate late payments if user has an agency
+                                            if ($user && $user->agency) {
+                                                try {
+                                                    if (class_exists('App\Models\VehicleCredit') && class_exists('App\Models\CreditPayment')) {
+                                                        $latePayments = \App\Models\CreditPayment::whereHas('credit', function($q) use ($user) {
+                                                            $q->where('agency_id', $user->agency_id)
+                                                              ->where('status', 'active');
+                                                        })
+                                                        ->where('status', 'pending')
+                                                        ->where('due_date', '<', now())
+                                                        ->count();
+                                                    }
+                                                } catch (\Exception $e) {
+                                                    // Log error silently
+                                                    \Log::error('Error counting late payments: ' . $e->getMessage());
+                                                }
+                                            }
+                                        @endphp
+                                        @if($latePayments > 0)
+                                            <span class="badge bg-danger float-end">{{ $latePayments }}</span>
+                                        @endif
+                                    </a>
+                                </li>
+                            @endcan
 
                             <!-- Car Attributes with Submenu -->
-                            <li class="submenu">
-                                <a href="javascript:void(0);"
-                                    class="{{ request()->routeIs('backoffice.vehicle-brands.*', 'backoffice.vehicle-models.*') ? 'active subdrop' : '' }}">
-                                    <i class="ti ti-device-camera-phone"></i>
-                                    <span>Car Attributes</span>
-                                    <span class="menu-arrow"></span>
-                                </a>
-                                <ul>
-                                    <li>
-                                        <a href="{{ route('backoffice.vehicle-brands.index') }}"
-                                            class="{{ request()->routeIs('backoffice.vehicle-brands.*') ? 'active' : '' }}">
-                                            Brands
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('backoffice.vehicle-models.index') }}"
-                                            class="{{ request()->routeIs('backoffice.vehicle-models.*') ? 'active' : '' }}">
-                                            Models
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                            @canany(['vehicle-brands.general.view', 'vehicle-models.general.view'])
+                                <li class="submenu">
+                                    <a href="javascript:void(0);"
+                                        class="{{ request()->routeIs('backoffice.vehicle-brands.*', 'backoffice.vehicle-models.*') ? 'active subdrop' : '' }}">
+                                        <i class="ti ti-device-camera-phone"></i>
+                                        <span>Car Attributes</span>
+                                        <span class="menu-arrow"></span>
+                                    </a>
+                                    <ul>
+                                        {{-- Brands - visible si permission view --}}
+                                        @can('vehicle-brands.general.view')
+                                            <li>
+                                                <a href="{{ route('backoffice.vehicle-brands.index') }}"
+                                                    class="{{ request()->routeIs('backoffice.vehicle-brands.*') ? 'active' : '' }}">
+                                                    Brands
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        
+                                        {{-- Models - visible si permission view --}}
+                                        @can('vehicle-models.general.view')
+                                            <li>
+                                                <a href="{{ route('backoffice.vehicle-models.index') }}"
+                                                    class="{{ request()->routeIs('backoffice.vehicle-models.*') ? 'active' : '' }}">
+                                                    Models
+                                                </a>
+                                            </li>
+                                        @endcan
+                                    </ul>
+                                </li>
+                            @endcanany
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ==================== RÉSERVATIONS SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @can('bookings.general.view')
                     <li class="menu-title"><span>RÉSERVATIONS</span></li>
                     <li>
                         <ul>
@@ -282,10 +342,10 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
 
                 <!-- ==================== FINANCE SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @canany(['financial-accounts.general.view', 'transaction-categories.general.view', 'financial-transactions.general.view'])
                     <li class="menu-title"><span>FINANCE</span></li>
                     <li>
                         <ul>
@@ -297,59 +357,74 @@
                                     <span class="menu-arrow"></span>
                                 </a>
                                 <ul>
-                                    <li>
-                                        <a href="{{ route('backoffice.finance.accounts.index') }}"
-                                            class="{{ request()->routeIs('backoffice.finance.accounts.*') ? 'active' : '' }}">
-                                            <i class="ti ti-building-bank me-1"></i>
-                                            Comptes
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('backoffice.finance.categories.index') }}"
-                                            class="{{ request()->routeIs('backoffice.finance.categories.*') ? 'active' : '' }}">
-                                            <i class="ti ti-category me-1"></i>
-                                            Catégories
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('backoffice.finance.transactions.index') }}"
-                                            class="{{ request()->routeIs('backoffice.finance.transactions.*') ? 'active' : '' }}">
-                                            <i class="ti ti-transfer me-1"></i>
-                                            Transactions
-                                        </a>
-                                    </li>
+                                    {{-- Comptes - visible si permission view --}}
+                                    @can('financial-accounts.general.view')
+                                        <li>
+                                            <a href="{{ route('backoffice.finance.accounts.index') }}"
+                                                class="{{ request()->routeIs('backoffice.finance.accounts.*') ? 'active' : '' }}">
+                                                <i class="ti ti-building-bank me-1"></i>
+                                                Comptes
+                                            </a>
+                                        </li>
+                                    @endcan
+                                    
+                                    {{-- Catégories - visible si permission view --}}
+                                    @can('transaction-categories.general.view')
+                                        <li>
+                                            <a href="{{ route('backoffice.finance.categories.index') }}"
+                                                class="{{ request()->routeIs('backoffice.finance.categories.*') ? 'active' : '' }}">
+                                                <i class="ti ti-category me-1"></i>
+                                                Catégories
+                                            </a>
+                                        </li>
+                                    @endcan
+                                    
+                                    {{-- Transactions - visible si permission view --}}
+                                    @can('financial-transactions.general.view')
+                                        <li>
+                                            <a href="{{ route('backoffice.finance.transactions.index') }}"
+                                                class="{{ request()->routeIs('backoffice.finance.transactions.*') ? 'active' : '' }}">
+                                                <i class="ti ti-transfer me-1"></i>
+                                                Transactions
+                                            </a>
+                                        </li>
+                                    @endcan
                                 </ul>
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ==================== FACTURATION SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @canany(['invoices.general.view', 'invoice-items.general.view'])
                     <li class="menu-title"><span>FACTURATION</span></li>
                     <li>
                         <ul>
-                            <!-- Factures -->
-                            <li class="{{ request()->routeIs('backoffice.invoices.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.invoices.index') }}">
-                                    <i class="ti ti-file-invoice"></i>
-                                    <span>Factures</span>
-                                </a>
-                            </li>
+                            {{-- Factures - visible si permission view --}}
+                            @can('invoices.general.view')
+                                <li class="{{ request()->routeIs('backoffice.invoices.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.invoices.index') }}">
+                                        <i class="ti ti-file-invoice"></i>
+                                        <span>Factures</span>
+                                    </a>
+                                </li>
+                            @endcan
 
-                            <!-- Items de facture -->
-                            <li class="{{ request()->routeIs('backoffice.invoice-items.*') ? 'active' : '' }}">
-                                <a href="{{ route('backoffice.invoice-items.index') }}">
-                                    <i class="ti ti-file-description"></i>
-                                    <span>Items de facture</span>
-                                </a>
-                            </li>
+                            {{-- Items de facture - visible si permission view --}}
+                            @can('invoice-items.general.view')
+                                <li class="{{ request()->routeIs('backoffice.invoice-items.*') ? 'active' : '' }}">
+                                    <a href="{{ route('backoffice.invoice-items.index') }}">
+                                        <i class="ti ti-file-description"></i>
+                                        <span>Items de facture</span>
+                                    </a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
-                @endrole
+                @endcanany
 
                 <!-- ==================== PAIEMENTS SECTION ==================== -->
-                @role('super-admin|admin|manager')
+                @can('payments.general.view')
                     <li class="menu-title"><span>PAIEMENTS</span></li>
                     <li>
                         <ul>
@@ -361,7 +436,7 @@
                             </li>
                         </ul>
                     </li>
-                @endrole
+                @endcan
             </ul>
         </div>
     </div>

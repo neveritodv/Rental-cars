@@ -27,9 +27,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.contract-clients.edit', $contractClient) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -75,9 +78,14 @@
                                     <div class="col-md-12">
                                         <div class="info-label">N° Contrat</div>
                                         <div class="info-value">
-                                            <a href="{{ route('backoffice.rental-contracts.show', $contractClient->rental_contract_id) }}">
+                                            {{-- Lien vers contrat - contrôlé par permission VIEW sur contrats --}}
+                                            @can('rental-contracts.general.view')
+                                                <a href="{{ route('backoffice.rental-contracts.show', $contractClient->rental_contract_id) }}">
+                                                    {{ $contractClient->rentalContract->contract_number ?? 'N/A' }}
+                                                </a>
+                                            @else
                                                 {{ $contractClient->rentalContract->contract_number ?? 'N/A' }}
-                                            </a>
+                                            @endcan
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -107,9 +115,14 @@
                                     <div class="col-md-12">
                                         <div class="info-label">Nom</div>
                                         <div class="info-value">
-                                            <a href="{{ route('backoffice.clients.show', $contractClient->client_id) }}">
+                                            {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                            @can('clients.general.view')
+                                                <a href="{{ route('backoffice.clients.show', $contractClient->client_id) }}">
+                                                    {{ $contractClient->client->first_name ?? '' }} {{ $contractClient->client->last_name ?? '' }}
+                                                </a>
+                                            @else
                                                 {{ $contractClient->client->first_name ?? '' }} {{ $contractClient->client->last_name ?? '' }}
-                                            </a>
+                                            @endcan
                                         </div>
                                     </div>
                                     <div class="col-md-6">

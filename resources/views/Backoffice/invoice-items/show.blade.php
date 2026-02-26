@@ -57,9 +57,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.invoice-items.edit', $invoiceItem) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -78,8 +81,15 @@
                                     <h4 class="mb-1">{{ $invoiceItem->description }}</h4>
                                     <p class="mb-0 text-muted">
                                         <i class="ti ti-file-invoice me-1"></i>
-                                        Facture: <a
-                                            href="{{ route('backoffice.invoices.show', $invoiceItem->invoice_id) }}">{{ $invoiceItem->invoice->invoice_number }}</a>
+                                        Facture: 
+                                        {{-- Lien vers facture - contrôlé par permission VIEW sur factures --}}
+                                        @can('invoices.general.view')
+                                            <a href="{{ route('backoffice.invoices.show', $invoiceItem->invoice_id) }}">
+                                                {{ $invoiceItem->invoice->invoice_number }}
+                                            </a>
+                                        @else
+                                            <span>{{ $invoiceItem->invoice->invoice_number }}</span>
+                                        @endcan
                                     </p>
                                 </div>
                             </div>
@@ -166,9 +176,14 @@
                             <div class="col-md-3">
                                 <div class="info-label">N° Facture</div>
                                 <div class="info-value">
-                                    <a href="{{ route('backoffice.invoices.show', $invoiceItem->invoice_id) }}">
-                                        {{ $invoiceItem->invoice->invoice_number }}
-                                    </a>
+                                    {{-- Lien vers facture - contrôlé par permission VIEW sur factures --}}
+                                    @can('invoices.general.view')
+                                        <a href="{{ route('backoffice.invoices.show', $invoiceItem->invoice_id) }}">
+                                            {{ $invoiceItem->invoice->invoice_number }}
+                                        </a>
+                                    @else
+                                        <span>{{ $invoiceItem->invoice->invoice_number }}</span>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -179,12 +194,18 @@
                                 <div class="info-label">Client</div>
                                 <div class="info-value">
                                     @if($invoiceItem->invoice->client)
-                                    <a href="{{ route('backoffice.clients.show', $invoiceItem->invoice->client_id) }}">
-                                        {{ $invoiceItem->invoice->client->first_name }}
-                                        {{ $invoiceItem->invoice->client->last_name }}
-                                    </a>
+                                        {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                        @can('clients.general.view')
+                                            <a href="{{ route('backoffice.clients.show', $invoiceItem->invoice->client_id) }}">
+                                                {{ $invoiceItem->invoice->client->first_name }}
+                                                {{ $invoiceItem->invoice->client->last_name }}
+                                            </a>
+                                        @else
+                                            <span>{{ $invoiceItem->invoice->client->first_name }}
+                                                {{ $invoiceItem->invoice->client->last_name }}</span>
+                                        @endcan
                                     @else
-                                    —
+                                        —
                                     @endif
                                 </div>
                             </div>

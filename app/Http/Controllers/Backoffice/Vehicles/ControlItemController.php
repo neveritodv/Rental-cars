@@ -21,6 +21,11 @@ class ControlItemController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-control-items.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les éléments de contrôle.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = VehicleControlItem::with(['vehicleControl' => function($q) use ($agencyId) {
@@ -69,7 +74,15 @@ class ControlItemController extends Controller
             ->orderBy('control_number')
             ->get();
 
-        return view('Backoffice.control-items.index', compact('items', 'controls'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-control-items.general.view'),
+            'can_create' => auth()->user()->can('vehicle-control-items.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-control-items.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-control-items.general.delete'),
+        ];
+
+        return view('Backoffice.control-items.index', compact('items', 'controls', 'permissions'));
     }
 
     /**
@@ -77,6 +90,11 @@ class ControlItemController extends Controller
      */
     public function create(Request $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-control-items.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des éléments de contrôle.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
         $controls = VehicleControl::where('agency_id', $agencyId)
@@ -93,6 +111,11 @@ class ControlItemController extends Controller
      */
     public function store(VehicleControlItemStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-control-items.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des éléments de contrôle.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -108,7 +131,6 @@ class ControlItemController extends Controller
 
             $item = VehicleControlItem::create($data);
             
-            // FIXED: Use correct module name 'control-item' and the actual item object
             $this->createNotification('store', 'control-item', $item);
             
             DB::commit();
@@ -139,6 +161,11 @@ class ControlItemController extends Controller
      */
     public function show(VehicleControlItem $item)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-control-items.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les éléments de contrôle.');
+        }
+
         // Check if item's control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($item->vehicleControl->agency_id !== $agencyId) {
@@ -147,7 +174,13 @@ class ControlItemController extends Controller
 
         $item->load('vehicleControl');
 
-        return view('Backoffice.control-items.show', compact('item'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-control-items.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-control-items.general.delete'),
+        ];
+
+        return view('Backoffice.control-items.show', compact('item', 'permissions'));
     }
 
     /**
@@ -155,6 +188,11 @@ class ControlItemController extends Controller
      */
     public function edit(VehicleControlItem $item)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-control-items.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les éléments de contrôle.');
+        }
+
         // Check if item's control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($item->vehicleControl->agency_id !== $agencyId) {
@@ -173,6 +211,11 @@ class ControlItemController extends Controller
      */
     public function update(VehicleControlItemUpdateRequest $request, VehicleControlItem $item)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-control-items.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les éléments de contrôle.');
+        }
+
         // Check if item's control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($item->vehicleControl->agency_id !== $agencyId) {
@@ -186,7 +229,6 @@ class ControlItemController extends Controller
             
             $item->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'control-item', $item);
 
             DB::commit();
@@ -217,6 +259,11 @@ class ControlItemController extends Controller
      */
     public function destroy(VehicleControlItem $item)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-control-items.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les éléments de contrôle.');
+        }
+
         // Check if item's control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($item->vehicleControl->agency_id !== $agencyId) {
@@ -226,11 +273,9 @@ class ControlItemController extends Controller
         try {
             DB::beginTransaction();
 
-            // Store item data for notification before delete
             $itemData = clone $item;
             $item->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'control-item', $itemData);
             
             DB::commit();

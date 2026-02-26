@@ -117,9 +117,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.controls.edit', $control) }}" class="btn btn-primary me-2">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -210,9 +213,14 @@
                                             }
                                         @endphp
                                         <div class="vehicle-details">
-                                            <a href="{{ $control->vehicle ? route('backoffice.vehicles.show', $control->vehicle) : '#' }}" class="fw-medium">
-                                                {{ $vehicleRegNumber }}
-                                            </a>
+                                            {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                                            @can('vehicles.general.view')
+                                                <a href="{{ $control->vehicle ? route('backoffice.vehicles.show', $control->vehicle) : '#' }}" class="fw-medium">
+                                                    {{ $vehicleRegNumber }}
+                                                </a>
+                                            @else
+                                                <span class="fw-medium">{{ $vehicleRegNumber }}</span>
+                                            @endcan
                                             @if($vehicleDetails)
                                                 <small class="vehicle-model-details">{{ $vehicleDetails }}</small>
                                             @endif
@@ -226,9 +234,14 @@
                                             @php
                                                 $contractNumber = $control->rentalContract->contract_number ?? 'N°' . $control->rentalContract->id;
                                             @endphp
-                                            <a href="{{ route('backoffice.rental-contracts.show', $control->rentalContract) }}">
-                                                #{{ $contractNumber }}
-                                            </a>
+                                            {{-- Lien vers contrat - contrôlé par permission VIEW sur contrats --}}
+                                            @can('rental-contracts.general.view')
+                                                <a href="{{ route('backoffice.rental-contracts.show', $control->rentalContract) }}">
+                                                    #{{ $contractNumber }}
+                                                </a>
+                                            @else
+                                                <span>#{{ $contractNumber }}</span>
+                                            @endcan
                                         @else
                                             <span class="text-muted">Non associé</span>
                                         @endif

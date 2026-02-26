@@ -32,23 +32,14 @@
     .badge-expense { background: #f8d7da; color: #721c24; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     .badge-both { background: #cce5ff; color: #004085; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     
-    .table-responsive { 
-        overflow: visible !important; 
+    .table-responsive, 
+    .custom-datatable-filter, 
+    .dataTables_wrapper {
+        overflow: visible !important;
     }
     
     .dropdown-menu {
         z-index: 9999 !important;
-        display: block;
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(-10px);
-        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-    }
-    
-    .dropdown-menu.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
     }
     
     .form-check {
@@ -115,12 +106,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
-                    <div class="mb-0">
-                        <a href="{{ route('backoffice.finance.categories.create') }}" class="btn btn-primary d-flex align-items-center">
-                            <i class="ti ti-plus me-2"></i>Nouvelle catégorie
-                        </a>
-                    </div>
+                    {{-- Bouton Ajouter - contrôlé par permission CREATE --}}
+                    @can('transaction-categories.general.create')
+                        <div class="mb-0">
+                            <a href="{{ route('backoffice.finance.categories.create') }}" class="btn btn-primary d-flex align-items-center">
+                                <i class="ti ti-plus me-2"></i>Nouvelle catégorie
+                            </a>
+                        </div>
+                    @endcan
                 </div>
             </div>
 
@@ -149,7 +142,7 @@
 
         <!-- Table -->
         <div class="custom-datatable-filter table-responsive">
-            @include('backoffice.finance.categories.partials._table')
+            @include('backoffice.finance.categories.partials._table', ['categories' => $categories])
         </div>
 
         <!-- Pagination -->

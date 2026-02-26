@@ -125,12 +125,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('invoice-items.general.create')
                     <div class="mb-0">
                         <a href="{{ route('backoffice.invoice-items.create') }}" class="btn btn-primary d-flex align-items-center">
                             <i class="ti ti-plus me-2"></i>Nouvel item
                         </a>
                     </div>
+                    @endcan
                 </div>
             </div>
 
@@ -161,7 +163,7 @@
 
         <!-- Table -->
         <div class="custom-datatable-filter table-responsive">
-            @include('backoffice.invoice-items.partials._table')
+            @include('backoffice.invoice-items.partials._table', ['items' => $items, 'permissions' => $permissions])
         </div>
 
         <!-- Pagination -->

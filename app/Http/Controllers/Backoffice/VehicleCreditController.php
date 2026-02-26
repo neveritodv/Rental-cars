@@ -18,6 +18,11 @@ class VehicleCreditController extends Controller
      */
     public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-credits.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les crédits.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -100,8 +105,17 @@ class VehicleCreditController extends Controller
             ->toArray();
         
         $vehicles = Vehicle::where('agency_id', $agency->id)->get();
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-credits.general.view'),
+            'can_create' => auth()->user()->can('vehicle-credits.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-credits.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-credits.general.delete'),
+            'can_record_payment' => auth()->user()->can('vehicle-credits.general.edit'), // Enregistrer paiement = edit
+        ];
         
-        return view('Backoffice.vehicle-credits.index', compact('credits', 'availableCreditors', 'vehicles'));
+        return view('Backoffice.vehicle-credits.index', compact('credits', 'availableCreditors', 'vehicles', 'permissions'));
     }
 
     /**
@@ -109,6 +123,11 @@ class VehicleCreditController extends Controller
      */
     public function create(): View
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-credits.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des crédits.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -124,6 +143,11 @@ class VehicleCreditController extends Controller
      */
     public function store(Request $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-credits.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des crédits.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -174,6 +198,8 @@ class VehicleCreditController extends Controller
         foreach ($payments as $paymentData) {
             $credit->payments()->create($paymentData);
         }
+        
+        $this->createNotification('store', 'vehicle-credit', $credit);
         
         return redirect()->route('backoffice.vehicle-credits.index')
             ->with('success', 'Crédit créé avec succès');
@@ -255,13 +281,26 @@ class VehicleCreditController extends Controller
      */
     public function show(VehicleCredit $vehicleCredit): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-credits.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les crédits.');
+        }
+
         // Charger uniquement les relations qui existent
         $vehicleCredit->load(['vehicle', 'payments' => function($q) {
             $q->orderBy('payment_number');
         }]);
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-credits.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-credits.general.delete'),
+            'can_record_payment' => auth()->user()->can('vehicle-credits.general.edit'),
+        ];
         
         return view('Backoffice.vehicle-credits.show', [
-            'credit' => $vehicleCredit
+            'credit' => $vehicleCredit,
+            'permissions' => $permissions
         ]);
     }
 
@@ -270,6 +309,11 @@ class VehicleCreditController extends Controller
      */
     public function edit(VehicleCredit $vehicleCredit): View
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-credits.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les crédits.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -288,6 +332,11 @@ class VehicleCreditController extends Controller
      */
     public function update(Request $request, VehicleCredit $vehicleCredit)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-credits.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les crédits.');
+        }
+
         $validated = $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'creditor_name' => 'required|string|max:150',
@@ -308,6 +357,8 @@ class VehicleCreditController extends Controller
         
         $vehicleCredit->update($validated);
         
+        $this->createNotification('update', 'vehicle-credit', $vehicleCredit);
+        
         return redirect()->route('backoffice.vehicle-credits.show', $vehicleCredit)
             ->with('success', 'Crédit mis à jour avec succès');
     }
@@ -317,12 +368,20 @@ class VehicleCreditController extends Controller
      */
     public function destroy(VehicleCredit $vehicleCredit)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-credits.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les crédits.');
+        }
+
         // Delete contract file if exists
         if ($vehicleCredit->contract_file) {
             Storage::disk('public')->delete($vehicleCredit->contract_file);
         }
         
+        $vehicleCreditData = clone $vehicleCredit;
         $vehicleCredit->delete();
+        
+        $this->createNotification('destroy', 'vehicle-credit', $vehicleCreditData);
         
         return redirect()->route('backoffice.vehicle-credits.index')
             ->with('success', 'Crédit déplacé vers la corbeille');
@@ -333,6 +392,11 @@ class VehicleCreditController extends Controller
      */
     public function recordPayment(Request $request, VehicleCredit $vehicleCredit)
     {
+        // ✅ Vérifier la permission EDIT (pour enregistrer un paiement)
+        if (!auth()->user()->can('vehicle-credits.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission d\'enregistrer des paiements.');
+        }
+
         $validated = $request->validate([
             'payment_number' => 'required|integer',
             'paid_date' => 'required|date',
@@ -361,6 +425,11 @@ class VehicleCreditController extends Controller
      */
     public function getPaymentSchedule(VehicleCredit $vehicleCredit)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-credits.general.view')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $payments = $vehicleCredit->payments()
             ->orderBy('payment_number')
             ->get()
@@ -385,6 +454,11 @@ class VehicleCreditController extends Controller
      */
     public function dashboard(): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-credits.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les crédits.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -430,6 +504,11 @@ class VehicleCreditController extends Controller
      */
     public function trashed(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW pour la corbeille
+        if (!auth()->user()->can('trash.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir la corbeille.');
+        }
+
         $user = auth()->user();
         $agency = $user->agency;
         
@@ -460,6 +539,11 @@ class VehicleCreditController extends Controller
      */
     public function restore($id)
     {
+        // ✅ Vérifier la permission RESTORE (via trash)
+        if (!auth()->user()->can('trash.general.restore')) {
+            abort(403, 'Vous n\'avez pas la permission de restaurer des crédits.');
+        }
+
         $credit = VehicleCredit::onlyTrashed()->findOrFail($id);
         $credit->restore();
         
@@ -472,6 +556,11 @@ class VehicleCreditController extends Controller
      */
     public function forceDelete($id)
     {
+        // ✅ Vérifier la permission DELETE (via trash)
+        if (!auth()->user()->can('trash.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer définitivement des crédits.');
+        }
+
         $credit = VehicleCredit::onlyTrashed()->findOrFail($id);
         
         // Delete contract file if exists

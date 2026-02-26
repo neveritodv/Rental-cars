@@ -128,9 +128,11 @@
                                                 </div>
                                             </div>
 
+                                            {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                                            @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                             <div class="col-lg-12">
                                                 <a href="javascript:void(0);"
-                                                   class="link-violet text-decoration-underline fw-medium"
+                                                   class="btn btn-primary btn-sm d-inline-flex align-items-center"
                                                    data-bs-toggle="modal"
                                                    data-bs-target="#edit_user"
                                                    data-edit-action="{{ route('backoffice.users.update', $user) }}"
@@ -141,9 +143,10 @@
                                                    data-user-agency="{{ $user->agency_id }}"
                                                    data-user-avatar="{{ $user->getFirstMediaUrl('avatar') }}"
                                                 >
-                                                    Edit
+                                                    <i class="ti ti-edit me-1"></i>Modifier
                                                 </a>
                                             </div>
+                                            @endif
 
                                         </div>
                                     </div>
@@ -152,7 +155,9 @@
                                     <div>
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                             <h6>Documents</h6>
+                                            @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                             <a href="javascript:void(0);" class="link-default"><i class="ti ti-edit"></i></a>
+                                            @endif
                                         </div>
 
                                         <div class="d-flex align-items-center flex-wrap gap-4">

@@ -72,11 +72,14 @@
     <table class="table datatable align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-credits.general.delete')
                 <th width="50" class="text-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 
                 {{-- VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(!isset($vehicle) || !$vehicle)
@@ -90,24 +93,35 @@
                 <th>Mensualité</th>
                 <th>Progression</th>
                 <th>Statut</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-credits.general.view', 'vehicle-credits.general.edit', 'vehicle-credits.general.delete'])
                 <th width="80">Actions</th>
+                @endcanany
             </tr>
         </thead>
         <tbody>
             @forelse($credits as $credit)
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-credits.general.delete')
                 <td class="text-center">
                     <div class="form-check">
                         <input class="form-check-input credit-checkbox" type="checkbox" value="{{ $credit->id }}">
                     </div>
                 </td>
+                @endcan
                 
                 {{-- SHOW VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(!isset($vehicle) || !$vehicle)
                     <td>
-                        <a href="{{ route('backoffice.vehicles.show', $credit->vehicle_id) }}" class="fw-medium">
-                            {{ $credit->vehicle->registration_number ?? 'N/C' }}
-                        </a>
+                        {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                        @can('vehicles.general.view')
+                            <a href="{{ route('backoffice.vehicles.show', $credit->vehicle_id) }}" class="fw-medium">
+                                {{ $credit->vehicle->registration_number ?? 'N/C' }}
+                            </a>
+                        @else
+                            <span class="fw-medium">{{ $credit->vehicle->registration_number ?? 'N/C' }}</span>
+                        @endcan
                         @if($credit->vehicle)
                             <br><small class="text-muted">{{ $credit->vehicle->brand->name ?? '' }} {{ $credit->vehicle->model->name ?? '' }}</small>
                         @endif
@@ -115,9 +129,14 @@
                 @endif
                 
                 <td>
-                    <a href="{{ route('backoffice.vehicle-credits.show', $credit->id) }}" class="fw-medium">
-                        {{ $credit->credit_number }}
-                    </a>
+                    {{-- Lien vers show - contrôlé par permission VIEW --}}
+                    @can('vehicle-credits.general.view')
+                        <a href="{{ route('backoffice.vehicle-credits.show', $credit->id) }}" class="fw-medium">
+                            {{ $credit->credit_number }}
+                        </a>
+                    @else
+                        <span class="fw-medium">{{ $credit->credit_number }}</span>
+                    @endcan
                     <br><small class="text-muted">{{ $credit->start_date->format('d/m/Y') }}</small>
                 </td>
                 
@@ -165,28 +184,41 @@
                     @endif
                 </td>
                 
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-credits.general.view', 'vehicle-credits.general.edit', 'vehicle-credits.general.delete'])
                 <td class="text-center">
                     @include('Backoffice.vehicle-credits.partials._actions', ['credit' => $credit])
                 </td>
+                @endcanany
             </tr>
             @empty
             <tr>
-                <td colspan="{{ !isset($vehicle) || !$vehicle ? '9' : '8' }}" class="text-center py-5">
+                @can('vehicle-credits.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (!isset($vehicle) || !$vehicle ? 8 : 7) + (auth()->user()->can('vehicle-credits.general.delete') ? 1 : 0) }}" class="text-center py-5">
                     <div class="text-center">
                         <i class="ti ti-credit-card-off fs-48 text-gray-4 mb-3"></i>
                         <h5 class="mb-2">Aucun crédit trouvé</h5>
-                        <p class="text-muted mb-3">Commencez par ajouter un crédit</p>
-                        <a href="{{ route('backoffice.vehicle-credits.create') }}" class="btn btn-primary mt-3">
-                            <i class="ti ti-plus me-2"></i>Ajouter un crédit
-                        </a>
+                        @can('vehicle-credits.general.create')
+                            <p class="text-muted mb-3">Commencez par ajouter un crédit</p>
+                            <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#add_credit">
+                                <i class="ti ti-plus me-2"></i>Ajouter un crédit
+                            </button>
+                        @endcan
                     </div>
                 </td>
+                @canany(['vehicle-credits.general.view', 'vehicle-credits.general.edit', 'vehicle-credits.general.delete'])
+                <td></td>
+                @endcanany
             </tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-credits.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
@@ -199,3 +231,4 @@
         }
     });
 </script>
+@endcan

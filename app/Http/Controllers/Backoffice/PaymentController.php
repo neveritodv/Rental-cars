@@ -24,6 +24,11 @@ class PaymentController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('payments.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les paiements.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = Payment::where('agency_id', $agencyId)
@@ -93,7 +98,16 @@ class PaymentController extends Controller
         $accounts = FinancialAccount::where('agency_id', $agencyId)->orderBy('name')->get();
         $invoices = Invoice::where('agency_id', $agencyId)->orderBy('invoice_number')->get();
 
-        return view('backoffice.payments.index', compact('payments', 'accounts', 'invoices'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('payments.general.view'),
+            'can_create' => auth()->user()->can('payments.general.create'),
+            'can_edit' => auth()->user()->can('payments.general.edit'),
+            'can_delete' => auth()->user()->can('payments.general.delete'),
+            'can_confirm' => auth()->user()->can('payments.general.edit'), // Confirmer = edit
+        ];
+
+        return view('backoffice.payments.index', compact('payments', 'accounts', 'invoices', 'permissions'));
     }
 
     /**
@@ -101,6 +115,11 @@ class PaymentController extends Controller
      */
     public function create(Request $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('payments.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des paiements.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $accounts = FinancialAccount::where('agency_id', $agencyId)->orderBy('name')->get();
@@ -121,6 +140,11 @@ class PaymentController extends Controller
      */
     public function store(PaymentStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('payments.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des paiements.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -140,7 +164,6 @@ class PaymentController extends Controller
                 $this->updateInvoiceStatus($payment->invoice);
             }
             
-            // FIXED: Use correct module name 'payment' and the actual payment object
             $this->createNotification('store', 'payment', $payment);
 
             DB::commit();
@@ -171,11 +194,21 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment)
     {
-        //$this->authorize('view', $payment);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('payments.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les paiements.');
+        }
 
         $payment->load(['invoice', 'rentalContract', 'financialAccount', 'financialTransaction']);
 
-        return view('backoffice.payments.partials.show', compact('payment'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('payments.general.edit'),
+            'can_delete' => auth()->user()->can('payments.general.delete'),
+            'can_confirm' => auth()->user()->can('payments.general.edit'),
+        ];
+
+        return view('backoffice.payments.partials.show', compact('payment', 'permissions'));
     }
 
     /**
@@ -183,7 +216,10 @@ class PaymentController extends Controller
      */
     public function edit(Payment $payment)
     {
-        //$this->authorize('update', $payment);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('payments.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les paiements.');
+        }
 
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
@@ -199,7 +235,10 @@ class PaymentController extends Controller
      */
     public function update(PaymentUpdateRequest $request, Payment $payment)
     {
-        //$this->authorize('update', $payment);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('payments.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les paiements.');
+        }
 
         try {
             DB::beginTransaction();
@@ -223,7 +262,6 @@ class PaymentController extends Controller
                 $this->updateInvoiceStatus($payment->invoice);
             }
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'payment', $payment);
 
             DB::commit();
@@ -254,19 +292,21 @@ class PaymentController extends Controller
      */
     public function destroy(Payment $payment)
     {
-        //$this->authorize('delete', $payment);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('payments.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les paiements.');
+        }
 
         try {
             DB::beginTransaction();
 
-            // Store payment data for notification before delete
             $paymentData = clone $payment;
 
             // Delete financial transaction if exists
             if ($payment->financialTransaction) {
                 $payment->financialTransaction->delete();
             }
- $item->delete();
+
             $payment->delete();
 
             // Update invoice status if needed
@@ -274,7 +314,6 @@ class PaymentController extends Controller
                 $this->updateInvoiceStatus($payment->invoice);
             }
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'payment', $paymentData);
 
             DB::commit();

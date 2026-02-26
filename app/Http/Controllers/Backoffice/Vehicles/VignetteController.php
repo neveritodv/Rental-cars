@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\View\View;
 
 class VignetteController extends Controller
 {
@@ -20,10 +21,15 @@ class VignetteController extends Controller
      * Display a listing of the vignettes.
      * Route: /backoffice/vehicles/{vehicle}/vignettes
      */
-    public function index(Request $request, $vehicleId)
+    public function index(Request $request, $vehicleId): View
     {
         // ============ GLOBAL VIEW - ALL VEHICLES ============
         if ($vehicleId === 'all') {
+            // ✅ Vérifier la permission VIEW
+            if (!auth()->user()->can('vehicle-vignettes.general.view')) {
+                abort(403, 'Vous n\'avez pas la permission de voir les vignettes.');
+            }
+
             $query = VehicleVignette::with('vehicle');
             
             // 🔎 SEARCH
@@ -86,11 +92,20 @@ class VignetteController extends Controller
                 ->orderBy('year', 'desc')
                 ->pluck('year');
 
+            // ✅ Passer les permissions à la vue
+            $permissions = [
+                'can_view' => auth()->user()->can('vehicle-vignettes.general.view'),
+                'can_create' => auth()->user()->can('vehicle-vignettes.general.create'),
+                'can_edit' => auth()->user()->can('vehicle-vignettes.general.edit'),
+                'can_delete' => auth()->user()->can('vehicle-vignettes.general.delete'),
+            ];
+
             return view('Backoffice.vignettes.index', [
                 'vehicle' => null,
                 'vignettes' => $vignettes,
                 'availableYears' => $availableYears,
-                'isGlobalView' => true
+                'isGlobalView' => true,
+                'permissions' => $permissions
             ]);
         }
         
@@ -102,11 +117,17 @@ class VignetteController extends Controller
                 'vehicle' => null,
                 'vignettes' => new LengthAwarePaginator([], 0, 15),
                 'availableYears' => collect([]),
-                'isGlobalView' => false
+                'isGlobalView' => false,
+                'permissions' => []
             ]);
         }
         
         $this->authorize('view', $vehicle);
+        
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-vignettes.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les vignettes.');
+        }
 
         $query = $vehicle->vignettes();
 
@@ -168,17 +189,41 @@ class VignetteController extends Controller
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-        return view('Backoffice.vignettes.index', compact('vehicle', 'vignettes', 'availableYears'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-vignettes.general.view'),
+            'can_create' => auth()->user()->can('vehicle-vignettes.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-vignettes.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-vignettes.general.delete'),
+        ];
+
+        return view('Backoffice.vignettes.index', compact('vehicle', 'vignettes', 'availableYears', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new vignette.
+     */
     public function create(Vehicle $vehicle = null)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-vignettes.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des vignettes.');
+        }
+
         $vehicles = Vehicle::orderBy('registration_number')->get();
         return view('Backoffice.vignettes.partials._modal_create', compact('vehicle', 'vehicles'));
     }
 
+    /**
+     * Store a newly created vignette in storage.
+     */
     public function store(VehicleVignetteStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-vignettes.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des vignettes.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -193,7 +238,6 @@ class VignetteController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // FIXED: Use correct module name 'vignette' and the actual vignette object
             $this->createNotification('store', 'vignette', $vignette);
             
             DB::commit();
@@ -219,23 +263,54 @@ class VignetteController extends Controller
         }
     }
 
+    /**
+     * Display the specified vignette.
+     */
     public function show(Vehicle $vehicle, VehicleVignette $vignette)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-vignettes.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les vignettes.');
+        }
+
         $this->authorize('view', $vehicle);
         $this->verifyResource($vehicle, $vignette);
-        return view('Backoffice.vignettes.show', compact('vehicle', 'vignette'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-vignettes.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-vignettes.general.delete'),
+        ];
+
+        return view('Backoffice.vignettes.show', compact('vehicle', 'vignette', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified vignette.
+     */
     public function edit(Vehicle $vehicle, VehicleVignette $vignette)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-vignettes.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les vignettes.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $vignette);
         $vehicles = Vehicle::orderBy('registration_number')->get();
         return view('Backoffice.vignettes.partials._modal_edit', compact('vehicle', 'vignette', 'vehicles'));
     }
 
+    /**
+     * Update the specified vignette in storage.
+     */
     public function update(VehicleVignetteUpdateRequest $request, Vehicle $vehicle, VehicleVignette $vignette)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-vignettes.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les vignettes.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $vignette);
 
@@ -251,7 +326,6 @@ class VignetteController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'vignette', $vignette);
 
             DB::commit();
@@ -278,15 +352,18 @@ class VignetteController extends Controller
     }
 
     /**
-     * Global index - Show vignettes for ALL vehicles
+     * Remove the specified vignette from storage.
      */
     public function destroy(Request $request, $vehicleId, VehicleVignette $vignette)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-vignettes.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les vignettes.');
+        }
+
         if ($vignette->vehicle_id != $vehicleId) {
             abort(404);
         }
-        
-        //$this->authorize('delete', $vignette->vehicle);
         
         try {
             DB::beginTransaction();
@@ -295,7 +372,6 @@ class VignetteController extends Controller
             $vignetteData = clone $vignette;
             $vignette->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'vignette', $vignetteData);
             
             DB::commit();
@@ -330,6 +406,9 @@ class VignetteController extends Controller
         }
     }
 
+    /**
+     * Verify that the vignette belongs to the vehicle
+     */
     private function verifyResource(Vehicle $vehicle, VehicleVignette $vignette): void
     {
         if ($vignette->vehicle_id !== $vehicle->id) {

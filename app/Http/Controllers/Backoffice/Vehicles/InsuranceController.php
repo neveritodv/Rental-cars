@@ -22,6 +22,11 @@ class InsuranceController extends Controller
      */
     public function index(Request $request, $vehicleId)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-insurances.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les assurances.');
+        }
+
         // ============ GLOBAL VIEW - ALL VEHICLES ============
         if ($vehicleId === 'all') {
             $query = VehicleInsurance::with('vehicle');
@@ -95,11 +100,20 @@ class InsuranceController extends Controller
                 ->orderBy('company_name')
                 ->pluck('company_name');
 
+            // ✅ Passer les permissions à la vue
+            $permissions = [
+                'can_view' => auth()->user()->can('vehicle-insurances.general.view'),
+                'can_create' => auth()->user()->can('vehicle-insurances.general.create'),
+                'can_edit' => auth()->user()->can('vehicle-insurances.general.edit'),
+                'can_delete' => auth()->user()->can('vehicle-insurances.general.delete'),
+            ];
+
             return view('Backoffice.insurances.index', [
                 'vehicle' => null,
                 'insurances' => $insurances,
                 'availableCompanies' => $availableCompanies,
-                'isGlobalView' => true
+                'isGlobalView' => true,
+                'permissions' => $permissions
             ]);
         }
         
@@ -186,17 +200,35 @@ class InsuranceController extends Controller
             ->orderBy('company_name')
             ->pluck('company_name');
 
-        return view('Backoffice.insurances.index', compact('vehicle', 'insurances', 'availableCompanies'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-insurances.general.view'),
+            'can_create' => auth()->user()->can('vehicle-insurances.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-insurances.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-insurances.general.delete'),
+        ];
+
+        return view('Backoffice.insurances.index', compact('vehicle', 'insurances', 'availableCompanies', 'permissions'));
     }
 
     public function create(Vehicle $vehicle = null)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-insurances.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des assurances.');
+        }
+
         $vehicles = Vehicle::orderBy('registration_number')->get();
         return view('Backoffice.insurances.partials._modal_create', compact('vehicle', 'vehicles'));
     }
 
     public function store(VehicleInsuranceStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-insurances.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des assurances.');
+        }
+
         try {
             DB::beginTransaction();
             $data = $request->validated();
@@ -212,7 +244,6 @@ class InsuranceController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // FIXED: Use correct module name 'insurance' and the actual insurance object
             $this->createNotification('store', 'insurance', $insurance);
             
             DB::commit();
@@ -239,13 +270,30 @@ class InsuranceController extends Controller
 
     public function show(Vehicle $vehicle, VehicleInsurance $insurance)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-insurances.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les assurances.');
+        }
+
         $this->authorize('view', $vehicle);
         $this->verifyResource($vehicle, $insurance);
-        return view('Backoffice.insurances.show', compact('vehicle', 'insurance'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-insurances.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-insurances.general.delete'),
+        ];
+
+        return view('Backoffice.insurances.show', compact('vehicle', 'insurance', 'permissions'));
     }
 
     public function edit(Vehicle $vehicle, VehicleInsurance $insurance)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-insurances.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les assurances.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $insurance);
         $vehicles = Vehicle::orderBy('registration_number')->get();
@@ -254,6 +302,11 @@ class InsuranceController extends Controller
 
     public function update(VehicleInsuranceUpdateRequest $request, Vehicle $vehicle, VehicleInsurance $insurance)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-insurances.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les assurances.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $insurance);
 
@@ -271,7 +324,6 @@ class InsuranceController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'insurance', $insurance);
 
             DB::commit();
@@ -298,6 +350,11 @@ class InsuranceController extends Controller
 
     public function destroy(Request $request, $vehicleId, VehicleInsurance $insurance)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-insurances.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les assurances.');
+        }
+
         if ($insurance->vehicle_id != $vehicleId) {
             abort(404);
         }
@@ -307,11 +364,9 @@ class InsuranceController extends Controller
         try {
             DB::beginTransaction();
             
-            // Store insurance data for notification before delete
             $insuranceData = clone $insurance;
             $insurance->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'insurance', $insuranceData);
             
             DB::commit();

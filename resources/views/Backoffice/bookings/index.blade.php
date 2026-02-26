@@ -156,12 +156,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('bookings.general.create')
                     <div class="mb-0">
                         <a href="{{ route('backoffice.bookings.create') }}" class="btn btn-primary d-flex align-items-center">
                             <i class="ti ti-plus me-2"></i>Nouvelle réservation
                         </a>
                     </div>
+                    @endcan
                 </div>
             </div>
 

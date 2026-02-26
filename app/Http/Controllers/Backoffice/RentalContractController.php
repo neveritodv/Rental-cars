@@ -19,8 +19,16 @@ class RentalContractController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of rental contracts.
+     */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('rental-contracts.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrats.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = RentalContract::where('agency_id', $agencyId)
@@ -88,7 +96,15 @@ class RentalContractController extends Controller
         $vehicles = Vehicle::where('agency_id', $agencyId)->orderBy('registration_number')->get();
         $clients = Client::where('agency_id', $agencyId)->orderBy('first_name')->get();
 
-        return view('backoffice.rental-contracts.index', compact('contracts', 'vehicles', 'clients'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('rental-contracts.general.view'),
+            'can_create' => auth()->user()->can('rental-contracts.general.create'),
+            'can_edit' => auth()->user()->can('rental-contracts.general.edit'),
+            'can_delete' => auth()->user()->can('rental-contracts.general.delete'),
+        ];
+
+        return view('backoffice.rental-contracts.index', compact('contracts', 'vehicles', 'clients', 'permissions'));
     }
 
     /**
@@ -100,9 +116,6 @@ class RentalContractController extends Controller
         $month = date('m');
         $prefix = "CTR-{$year}{$month}-";
         
-        // Log for debugging
-        \Log::info('Generating contract number with prefix: ' . $prefix);
-        
         // Get the maximum contract number with this prefix
         $maxContract = RentalContract::where('contract_number', 'like', $prefix . '%')
             ->orderByRaw('CAST(SUBSTRING(contract_number, -4) AS UNSIGNED) DESC')
@@ -112,10 +125,8 @@ class RentalContractController extends Controller
             // Extract the number from the last contract
             $lastNumber = intval(substr($maxContract->contract_number, -4));
             $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-            \Log::info('Last number found: ' . $lastNumber . ', new number: ' . $newNumber);
         } else {
             $newNumber = '0001';
-            \Log::info('No previous contracts found, starting at 0001');
         }
         
         $contractNumber = $prefix . $newNumber;
@@ -126,15 +137,21 @@ class RentalContractController extends Controller
             $attempts++;
             $newNumber = str_pad(intval($newNumber) + 1, 4, '0', STR_PAD_LEFT);
             $contractNumber = $prefix . $newNumber;
-            \Log::info('Contract number already exists, trying: ' . $contractNumber);
         }
         
-        \Log::info('Final contract number: ' . $contractNumber);
         return $contractNumber;
     }
 
+    /**
+     * Show the form for creating a new contract.
+     */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('rental-contracts.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrats.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
         $vehicles = Vehicle::where('agency_id', $agencyId)
@@ -153,8 +170,16 @@ class RentalContractController extends Controller
         return view('backoffice.rental-contracts.partials._modal_create', compact('vehicles', 'clients', 'contractNumber'));
     }
 
+    /**
+     * Store a newly created contract.
+     */
     public function store(RentalContractStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('rental-contracts.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrats.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -191,11 +216,8 @@ class RentalContractController extends Controller
             // Remove any fields that shouldn't be in the create
             unset($data['_token']);
 
-            \Log::info('Creating contract with data:', $data);
-
             $contract = RentalContract::create($data);
             
-            // FIXED: Use correct module name 'rental-contract' and the actual contract object
             $this->createNotification('store', 'rental-contract', $contract);
 
             DB::commit();
@@ -223,7 +245,6 @@ class RentalContractController extends Controller
                     
                     $contract = RentalContract::create($data);
                     
-                    // FIXED: Add notification for retry
                     $this->createNotification('store', 'rental-contract', $contract);
                     
                     DB::commit();
@@ -268,18 +289,36 @@ class RentalContractController extends Controller
         }
     }
 
+    /**
+     * Display the specified contract.
+     */
     public function show(RentalContract $rentalContract)
     {
-        $this->authorize('view', $rentalContract);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('rental-contracts.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrats.');
+        }
         
         $rentalContract->load(['vehicle', 'primaryClient', 'secondaryClient', 'createdBy', 'updatedBy', 'agency']);
 
-        return view('backoffice.rental-contracts.show', compact('rentalContract'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('rental-contracts.general.edit'),
+            'can_delete' => auth()->user()->can('rental-contracts.general.delete'),
+        ];
+
+        return view('backoffice.rental-contracts.show', compact('rentalContract', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified contract.
+     */
     public function edit(RentalContract $rentalContract)
     {
-        $this->authorize('update', $rentalContract);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('rental-contracts.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrats.');
+        }
         
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
@@ -289,9 +328,15 @@ class RentalContractController extends Controller
         return view('backoffice.rental-contracts.partials._modal_edit', compact('rentalContract', 'vehicles', 'clients'));
     }
 
+    /**
+     * Update the specified contract.
+     */
     public function update(RentalContractUpdateRequest $request, RentalContract $rentalContract)
     {
-        $this->authorize('update', $rentalContract);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('rental-contracts.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrats.');
+        }
 
         try {
             DB::beginTransaction();
@@ -331,7 +376,6 @@ class RentalContractController extends Controller
 
             $rentalContract->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'rental-contract', $rentalContract);
 
             DB::commit();
@@ -357,18 +401,22 @@ class RentalContractController extends Controller
         }
     }
 
+    /**
+     * Remove the specified contract.
+     */
     public function destroy(RentalContract $rentalContract)
     {
-        $this->authorize('delete', $rentalContract);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('rental-contracts.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les contrats.');
+        }
 
         try {
             DB::beginTransaction();
             
-            // Store contract data for notification before delete
             $contractData = clone $rentalContract;
             $rentalContract->delete();
-             $item->delete();
-            // ADDED: Create notification for delete
+            
             $this->createNotification('destroy', 'rental-contract', $contractData);
             
             DB::commit();
@@ -394,9 +442,15 @@ class RentalContractController extends Controller
         }
     }
 
+    /**
+     * Update contract status.
+     */
     public function updateStatus(Request $request, RentalContract $rentalContract)
     {
-        $this->authorize('update', $rentalContract);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('rental-contracts.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrats.');
+        }
 
         $request->validate([
             'status' => ['required', 'in:draft,pending,accepted,in_progress,completed,cancelled'],
@@ -419,7 +473,6 @@ class RentalContractController extends Controller
 
             $rentalContract->update($data);
             
-            // ADDED: Create notification for status change
             $this->createNotification('status', 'rental-contract', $rentalContract);
 
             DB::commit();

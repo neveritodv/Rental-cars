@@ -1,24 +1,55 @@
 <head>
     <style>
         .table-responsive,
-.custom-datatable-filter,
-.dataTables_wrapper {
-    overflow: visible !important;
-}
+        .custom-datatable-filter,
+        .dataTables_wrapper {
+            overflow: visible !important;
+        }
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #6c757d;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            color: #0d6efd;
+        }
+        .form-check {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
     </style>
 </head>
-<table class="table datatable">
+
+<table class="table datatable align-middle">
     <thead class="thead-light">
         <tr>
-            <th class="no-sort">
+            {{-- Case à cocher - visible seulement si permission DELETE --}}
+            @can('agencies.general.delete')
+            <th class="no-sort" width="50">
                 <div class="form-check form-check-md">
                     <input class="form-check-input" type="checkbox" id="select-all">
                 </div>
             </th>
+            @endcan
             <th>NOM</th>
             <th>TOTAL CARS</th>
             <th>STATUT</th>
-            <th></th>
+            {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+            @canany(['agencies.general.view', 'agencies.general.edit', 'agencies.general.delete'])
+            <th width="80"></th>
+            @endcanany
         </tr>
     </thead>
 
@@ -30,11 +61,14 @@
             @endphp
 
             <tr>
-                <td>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('agencies.general.delete')
+                <td class="text-center">
                     <div class="form-check form-check-md">
-                        <input class="form-check-input" type="checkbox">
+                        <input class="form-check-input agency-checkbox" type="checkbox" value="{{ $agency->id }}">
                     </div>
                 </td>
+                @endcan
 
                 <td>
                     <div class="d-flex align-items-center file-name-icon">
@@ -45,7 +79,12 @@
                         </a>
                         <div class="ms-2">
                             <h6 class="fw-medium mb-0">
-                                <a href="javascript:void(0);">{{ $agency->name }}</a>
+                                {{-- Lien vers show - visible seulement si permission VIEW --}}
+                                @can('agencies.general.view')
+                                    <a href="{{ route('backoffice.agencies.show', $agency) }}">{{ $agency->name }}</a>
+                                @else
+                                    <span>{{ $agency->name }}</span>
+                                @endcan
                             </h6>
                             @if(!empty($agency->email))
                                 <small class="text-muted">{{ $agency->email }}</small>
@@ -68,16 +107,42 @@
                     @endif
                 </td>
 
-                <td>
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['agencies.general.view', 'agencies.general.edit', 'agencies.general.delete'])
+                <td class="text-center">
                     @include('backoffice.agencies.partials._actions', ['agency' => $agency])
                 </td>
+                @endcanany
             </tr>
         @empty
             <tr>
+                @can('agencies.general.delete')
                 <td></td>
-                <td colspan="3" class="text-center">Aucune agence trouvée.</td>
+                @endcan
+                <td colspan="{{ (auth()->user()->can('agencies.general.delete') ? 4 : 3) }}" class="text-center py-4">
+                    <i class="ti ti-building-off fs-24 text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Aucune agence trouvée.</p>
+                </td>
+                @canany(['agencies.general.view', 'agencies.general.edit', 'agencies.general.delete'])
                 <td></td>
+                @endcanany
             </tr>
         @endforelse
     </tbody>
 </table>
+
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('agencies.general.delete')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.agency-checkbox').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                });
+            });
+        }
+    });
+</script>
+@endcan

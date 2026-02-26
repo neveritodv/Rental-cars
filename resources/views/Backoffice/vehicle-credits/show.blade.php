@@ -122,9 +122,14 @@
                                             <div class="mb-3">
                                                 <h6 class="fs-14 fw-semibold mb-1">Véhicule</h6>
                                                 <p class="fs-13">
-                                                    <a href="{{ route('backoffice.vehicles.show', $credit->vehicle_id) }}" class="text-primary">
-                                                        {{ $credit->vehicle->registration_number ?? 'N/C' }}
-                                                    </a>
+                                                    {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                                                    @can('vehicles.general.view')
+                                                        <a href="{{ route('backoffice.vehicles.show', $credit->vehicle_id) }}" class="text-primary">
+                                                            {{ $credit->vehicle->registration_number ?? 'N/C' }}
+                                                        </a>
+                                                    @else
+                                                        <span>{{ $credit->vehicle->registration_number ?? 'N/C' }}</span>
+                                                    @endcan
                                                     @if($credit->vehicle)
                                                         <br><small>{{ $credit->vehicle->brand->name ?? '' }} {{ $credit->vehicle->model->name ?? '' }}</small>
                                                     @endif
@@ -209,12 +214,17 @@
                                             </div>
                                         </div>
 
+                                        {{-- Boutons d'action - contrôlés par permissions --}}
                                         <div class="col-lg-12">
+                                            @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                             <a href="{{ route('backoffice.vehicle-credits.edit', $credit->id) }}"
                                                class="btn btn-primary btn-sm d-inline-flex align-items-center">
                                                 <i class="ti ti-edit me-1"></i>
                                                 Modifier
                                             </a>
+                                            @endif
+                                            
+                                            @if(isset($permissions['can_record_payment']) && $permissions['can_record_payment'])
                                             <button type="button"
                                                     class="btn btn-success btn-sm d-inline-flex align-items-center ms-2"
                                                     data-bs-toggle="modal"
@@ -222,6 +232,7 @@
                                                 <i class="ti ti-currency-dollar me-1"></i>
                                                 Enregistrer un paiement
                                             </button>
+                                            @endif
                                         </div>
 
                                     </div>
@@ -291,10 +302,12 @@
                                 <div class="text-muted">
                                     <div class="d-flex align-items-center justify-content-between mb-3">
                                         <h6>Notes internes</h6>
+                                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                         <a href="{{ route('backoffice.vehicle-credits.edit', $credit->id) }}" 
                                            class="btn btn-sm btn-primary">
                                             <i class="ti ti-edit me-1"></i>Éditer
                                         </a>
+                                        @endif
                                     </div>
                                     @if($credit->notes)
                                         <div class="p-3 bg-light-100 rounded">
@@ -363,6 +376,7 @@
 </div>
 
 {{-- Record Payment Modal --}}
+@if(isset($permissions['can_record_payment']) && $permissions['can_record_payment'])
 <div class="modal fade" id="record_payment">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -404,6 +418,7 @@
         </div>
     </div>
 </div>
+@endif
 
 @include('Backoffice.vehicle-credits.partials._modal_delete')
 @endsection

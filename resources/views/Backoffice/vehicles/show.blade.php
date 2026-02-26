@@ -60,9 +60,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.vehicles.edit', $vehicle) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -124,11 +127,29 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Modèle</div>
-                                        <div class="info-value">{{ $vehicle->model->name ?? 'N/A' }}</div>
+                                        <div class="info-value">
+                                            {{-- Lien vers modèle - contrôlé par permission VIEW --}}
+                                            @can('vehicle-models.general.view')
+                                                <a href="{{ route('backoffice.vehicle-models.show', $vehicle->model_id) }}">
+                                                    {{ $vehicle->model->name ?? 'N/A' }}
+                                                </a>
+                                            @else
+                                                {{ $vehicle->model->name ?? 'N/A' }}
+                                            @endcan
+                                        </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Marque</div>
-                                        <div class="info-value">{{ optional($vehicle->model?->brand)->name ?? 'N/A' }}</div>
+                                        <div class="info-value">
+                                            {{-- Lien vers marque - contrôlé par permission VIEW --}}
+                                            @can('vehicle-brands.general.view')
+                                                <a href="{{ route('backoffice.vehicle-brands.show', $vehicle->model?->brand_id) }}">
+                                                    {{ optional($vehicle->model?->brand)->name ?? 'N/A' }}
+                                                </a>
+                                            @else
+                                                {{ optional($vehicle->model?->brand)->name ?? 'N/A' }}
+                                            @endcan
+                                        </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Année</div>

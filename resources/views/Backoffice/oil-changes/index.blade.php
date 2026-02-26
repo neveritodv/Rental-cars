@@ -26,24 +26,11 @@
 
 @extends('layout.mainlayout_admin')
 
-
 @section('content')
 <div class="page-wrapper">
     <div class="content me-4">
 
         @include('Backoffice.oil-changes.partials._breadcrumbs', ['vehicle' => $vehicle ?? null])
-
-        <!-- @if(!isset($vehicle) || !$vehicle)
-            <div class="d-flex align-items-center justify-content-between p-4 mb-4 bg-light rounded border">
-                <div class="d-flex align-items-center">
-                    <i class="ti ti-info-circle fs-5 text-primary me-2"></i>
-                    <span>Aucun véhicule trouvé. Veuillez créer un véhicule pour ajouter des vidanges.</span>
-                </div>
-                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary">
-                    <i class="ti ti-plus me-1"></i>Créer un véhicule
-                </a>
-            </div>
-        @endif -->
 
         <form method="GET" id="filterForm" action="{{ request()->url() }}">
             <div class="d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
@@ -93,21 +80,25 @@
                             @endif
                         </div>
                     </div>
-<div class="mb-0">
-    @if(isset($isGlobalView) && $isGlobalView)
-        <a href="{{ route('backoffice.vehicle-documents.oil-changes.create') }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter une vidange
-        </a>
-    @else
-        <a href="{{ route('backoffice.vehicles.oil-changes.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter une vidange
-        </a>
-    @endif
-</div>
+                    
+                    {{-- Bouton Ajouter - contrôlé par permission CREATE --}}
+                    @can('vehicle-oil-changes.general.create')
+                        <div class="mb-0">
+                            @if(isset($isGlobalView) && $isGlobalView)
+                                <a href="{{ route('backoffice.vehicle-documents.oil-changes.create') }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une vidange
+                                </a>
+                            @else
+                                <a href="{{ route('backoffice.vehicles.oil-changes.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une vidange
+                                </a>
+                            @endif
+                        </div>
+                    @endcan
                 </div>
             </div>
 
-            <div class="collapse" id="filtercollapse">
+            <div class="collapse @if(request()->has('date_from') || request()->has('date_to') || request()->has('mechanic') || request()->has('mileage_min') || request()->has('mileage_max') || request()->has('amount_min') || request()->has('amount_max')) show @endif" id="filtercollapse">
                 <div class="filterbox p-3 mb-3 bg-light-100 rounded">
                     <div class="row align-items-end">
                         <div class="col-md-2">
@@ -139,11 +130,11 @@
                             <label class="form-label fw-medium">Montant min (DH)</label>
                             <input type="number" form="filterForm" name="amount_min" value="{{ request('amount_min') }}" class="form-control" placeholder="0.00" step="0.01" onchange="this.form.submit()">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 mt-2">
                             <label class="form-label fw-medium">Montant max (DH)</label>
                             <input type="number" form="filterForm" name="amount_max" value="{{ request('amount_max') }}" class="form-control" placeholder="9999.99" step="0.01" onchange="this.form.submit()">
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
+                        <div class="col-md-2 mt-2 d-flex align-items-end">
                             <a href="{{ route('backoffice.vehicles.oil-changes.index', ['vehicle' => $vehicle->id ?? 1]) }}" class="btn btn-sm btn-outline-danger w-100">
                                 <i class="ti ti-x me-1"></i>Tout effacer
                             </a>
@@ -154,7 +145,12 @@
         </form>
 
         <div class="custom-datatable-filter table-responsive">
-            @include('Backoffice.oil-changes.partials._table')
+            @include('Backoffice.oil-changes.partials._table', [
+                'oilChanges' => $oilChanges,
+                'isGlobalView' => $isGlobalView ?? false,
+                'vehicle' => $vehicle ?? null,
+                'permissions' => $permissions ?? []
+            ])
         </div>
 
         @if(isset($oilChanges) && $oilChanges->total() > 0)

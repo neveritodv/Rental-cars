@@ -78,10 +78,12 @@
                         </div>
                     </div>
                     <div class="mb-0">
-                        {{-- Bouton pour ouvrir le modal de création --}}
+                        {{-- Bouton pour ouvrir le modal de création - contrôlé par permission CREATE --}}
+                        @can('vehicle-credits.general.create')
                         <button type="button" class="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#add_credit">
                             <i class="ti ti-plus me-2"></i>Ajouter un crédit
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -130,7 +132,7 @@
         </form>
 
         <div class="custom-datatable-filter table-responsive">
-            @include('Backoffice.vehicle-credits.partials._table')
+            @include('Backoffice.vehicle-credits.partials._table', ['credits' => $credits, 'permissions' => $permissions])
         </div>
 
         @if(isset($credits) && $credits->total() > 0)
@@ -148,6 +150,7 @@
 </div>
 
 {{-- Create Credit Modal --}}
+@can('vehicle-credits.general.create')
 <div class="modal fade" id="add_credit">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -345,6 +348,7 @@
         </div>
     </div>
 </div>
+@endcan
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -358,6 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Bootstrap validation for modal form
+    @can('vehicle-credits.general.create')
     const modalForms = document.querySelectorAll('#add_credit .needs-validation');
     Array.from(modalForms).forEach(form => {
         form.addEventListener('submit', event => {
@@ -378,6 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
             dropdownParent: $('#add_credit')
         });
     }
+    @endcan
 });
 
 function clearSearch() {

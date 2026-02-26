@@ -115,12 +115,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('contract-clients.general.create')
                     <div class="mb-0">
                         <a href="{{ route('backoffice.contract-clients.create') }}" class="btn btn-primary d-flex align-items-center">
                             <i class="ti ti-plus me-2"></i>Ajouter une relation
                         </a>
                     </div>
+                    @endcan
                 </div>
             </div>
 
@@ -160,7 +162,7 @@
 
         <!-- Table -->
         <div class="custom-datatable-filter table-responsive">
-            @include('backoffice.contract-clients.partials._table')
+            @include('backoffice.contract-clients.partials._table', ['contractClients' => $contractClients, 'permissions' => $permissions])
         </div>
 
         <!-- Pagination -->
@@ -207,14 +209,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterCollapse = document.getElementById('filtercollapse');
 
     if (filterToggle && filterCollapse) {
-        // Remove any Bootstrap collapse attributes
         filterToggle.removeAttribute('data-bs-toggle');
         
         filterToggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            // Toggle the show class
             filterCollapse.classList.toggle('show');
         });
     }
@@ -236,11 +235,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!event.target.closest('.dropdown')) {
             closeAllDropdowns();
         }
-    });
-
-    // Debug: Log all delete action URLs
-    document.querySelectorAll('[data-delete-action]').forEach(el => {
-        console.log('Delete action URL:', el.getAttribute('data-delete-action'));
     });
 });
 

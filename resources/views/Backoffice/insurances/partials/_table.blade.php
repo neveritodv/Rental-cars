@@ -65,11 +65,14 @@
     <table class="table datatable align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-insurances.general.delete')
                 <th width="50" class="text-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 
                 {{-- VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
@@ -83,24 +86,35 @@
                 <th>Échéance</th>
                 <th>Statut</th>
                 <th>Notes</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-insurances.general.view', 'vehicle-insurances.general.edit', 'vehicle-insurances.general.delete'])
                 <th width="80">Actions</th>
+                @endcanany
             </tr>
         </thead>
         <tbody>
             @forelse($insurances as $insurance)
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-insurances.general.delete')
                 <td class="text-center">
                     <div class="form-check">
                         <input class="form-check-input insurance-checkbox" type="checkbox" value="{{ $insurance->id }}">
                     </div>
                 </td>
+                @endcan
                 
                 {{-- SHOW VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
                     <td>
-                        <a href="{{ route('backoffice.vehicles.show', $insurance->vehicle_id) }}" class="fw-medium">
-                            {{ $insurance->vehicle->registration_number ?? 'N/C' }}
-                        </a>
+                        {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                        @can('vehicles.general.view')
+                            <a href="{{ route('backoffice.vehicles.show', $insurance->vehicle_id) }}" class="fw-medium">
+                                {{ $insurance->vehicle->registration_number ?? 'N/C' }}
+                            </a>
+                        @else
+                            <span class="fw-medium">{{ $insurance->vehicle->registration_number ?? 'N/C' }}</span>
+                        @endcan
                         @if($insurance->vehicle)
                             <br><small class="text-muted">{{ $insurance->vehicle->registration_city ?? '' }}</small>
                         @endif
@@ -126,42 +140,58 @@
                         <span class="text-muted">—</span>
                     @endif
                 </td>
+                
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-insurances.general.view', 'vehicle-insurances.general.edit', 'vehicle-insurances.general.delete'])
                 <td class="text-center">
                     @include('Backoffice.insurances.partials._actions', ['insurance' => $insurance])
                 </td>
+                @endcanany
             </tr>
-@empty
-<tr>
-    <td colspan="{{ (isset($isGlobalView) && $isGlobalView) ? '8' : '7' }}" class="text-center py-5">
-        <div class="text-center">
-            <i class="ti ti-shield-off fs-48 text-gray-4 mb-3"></i>
-            <h5 class="mb-2">Aucune assurance trouvée</h5>
-            @if(isset($isGlobalView) && $isGlobalView)
-                <p class="text-muted mb-3">Commencez par ajouter une assurance</p>
-                <a href="{{ route('backoffice.vehicle-documents.insurances.create') }}" class="btn btn-primary mt-3">
-                    <i class="ti ti-plus me-2"></i>Ajouter une assurance
-                </a>
-            @else
-                @if(isset($vehicle) && $vehicle)
-                    <p class="text-muted mb-3">Commencez par ajouter une assurance</p>
-                    <a href="{{ route('backoffice.vehicles.insurances.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Ajouter une assurance
-                    </a>
-                @else
-                    <p class="text-muted mb-3">Aucun véhicule trouvé</p>
-                    <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Créer un véhicule
-                    </a>
-                @endif
-            @endif
-        </div>
-    </td>
-</tr>
-@endempty
+            @empty
+            <tr>
+                @can('vehicle-insurances.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (isset($isGlobalView) && $isGlobalView ? 8 : 7) + (auth()->user()->can('vehicle-insurances.general.delete') ? 1 : 0) }}" class="text-center py-5">
+                    <div class="text-center">
+                        <i class="ti ti-shield-off fs-48 text-gray-4 mb-3"></i>
+                        <h5 class="mb-2">Aucune assurance trouvée</h5>
+                        @if(isset($isGlobalView) && $isGlobalView)
+                            @can('vehicle-insurances.general.create')
+                                <p class="text-muted mb-3">Commencez par ajouter une assurance</p>
+                                <a href="{{ route('backoffice.vehicle-documents.insurances.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une assurance
+                                </a>
+                            @endcan
+                        @else
+                            @if(isset($vehicle) && $vehicle)
+                                @can('vehicle-insurances.general.create')
+                                    <p class="text-muted mb-3">Commencez par ajouter une assurance</p>
+                                    <a href="{{ route('backoffice.vehicles.insurances.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
+                                        <i class="ti ti-plus me-2"></i>Ajouter une assurance
+                                    </a>
+                                @endcan
+                            @else
+                                <p class="text-muted mb-3">Aucun véhicule trouvé</p>
+                                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Créer un véhicule
+                                </a>
+                            @endif
+                        @endif
+                    </div>
+                </td>
+                @canany(['vehicle-insurances.general.view', 'vehicle-insurances.general.edit', 'vehicle-insurances.general.delete'])
+                <td></td>
+                @endcanany
+            </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
 
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-insurances.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
@@ -174,3 +204,4 @@
         }
     });
 </script>
+@endcan

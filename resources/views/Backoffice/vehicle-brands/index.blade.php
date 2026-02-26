@@ -66,37 +66,38 @@
                         </div>
                     </div>
 
-                    <!-- STATUS DROPDOWN - VISUAL ONLY -->
-                    <div class="dropdown">
-                        <a href="javascript:void(0);" class="dropdown-toggle btn btn-white d-inline-flex align-items-center"
-                            data-bs-toggle="dropdown">
-                            <i class="ti ti-badge me-1"></i> Status
+                    <!-- Bouton Ajouter - contrôlé par permission CREATE -->
+                    @can('vehicle-brands.general.create')
+                    <div class="mb-0">
+                        <a href="javascript:void(0);"
+                           class="btn btn-primary d-flex align-items-center"
+                           data-bs-toggle="modal"
+                           data-bs-target="#add_brand">
+                            <i class="ti ti-plus me-2"></i>Ajouter une marque
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end p-2">
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">Active</a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">Inactive</a>
-                            </li>
-                        </ul>
                     </div>
+                    @endcan
                 </div>
             </form>
             <!-- /FILTER FORM -->
 
             <!-- Custom Data Table -->
             <div class="custom-datatable-filter table-responsive">
-                @include('backoffice.vehicle-brands.partials._table', ['brands' => $brands])
+                @include('backoffice.vehicle-brands.partials._table', ['brands' => $brands, 'permissions' => $permissions])
             </div>
             <!-- Custom Data Table -->
 
             <!-- Pagination -->
-            <div class="table-footer">
-                <div class="d-flex justify-content-end">
+            @if($brands->total() > 0)
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Affichage de {{ $brands->firstItem() }} à {{ $brands->lastItem() }} sur {{ $brands->total() }} marques
+                </div>
+                <div>
                     {{ $brands->withQueryString()->links() }}
                 </div>
             </div>
+            @endif
 
         </div>
 

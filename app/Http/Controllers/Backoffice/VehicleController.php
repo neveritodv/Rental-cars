@@ -15,8 +15,16 @@ class VehicleController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of vehicles.
+     */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicles.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les véhicules.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = Vehicle::where('agency_id', $agencyId)
@@ -93,11 +101,27 @@ class VehicleController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('backoffice.vehicles.index', compact('vehicles', 'models'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicles.general.view'),
+            'can_create' => auth()->user()->can('vehicles.general.create'),
+            'can_edit' => auth()->user()->can('vehicles.general.edit'),
+            'can_delete' => auth()->user()->can('vehicles.general.delete'),
+        ];
+
+        return view('backoffice.vehicles.index', compact('vehicles', 'models', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new vehicle.
+     */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicles.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des véhicules.');
+        }
+
         $models = VehicleModel::where('agency_id', Auth::guard('backoffice')->user()->agency_id)
             ->with('brand')
             ->orderBy('name')
@@ -124,8 +148,16 @@ class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created vehicle.
+     */
     public function store(VehicleStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicles.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des véhicules.');
+        }
+
         $data = $request->validated();
         $data['agency_id'] = Auth::guard('backoffice')->user()->agency_id;
         
@@ -133,7 +165,7 @@ class VehicleController extends Controller
         $data['has_gps'] = (bool) ($data['has_gps'] ?? false);
         $data['has_air_conditioning'] = (bool) ($data['has_air_conditioning'] ?? true);
         $data['has_bluetooth'] = (bool) ($data['has_bluetooth'] ?? false);
-        $data['has_baby_seat'] = (bool) ($data['has_baby_seat'] ?? false); // Changed from has_usb
+        $data['has_baby_seat'] = (bool) ($data['has_baby_seat'] ?? false);
         $data['has_camera_recul'] = (bool) ($data['has_camera_recul'] ?? false);
         $data['has_regulateur_vitesse'] = (bool) ($data['has_regulateur_vitesse'] ?? false);
         $data['has_siege_chauffant'] = (bool) ($data['has_siege_chauffant'] ?? false);
@@ -142,7 +174,6 @@ class VehicleController extends Controller
 
         $vehicle = Vehicle::create($data);
         
-        // FIXED: Use correct module name 'vehicle' and the actual vehicle object
         $this->createNotification('store', 'vehicle', $vehicle);
 
         if ($request->hasFile('photos')) {
@@ -168,15 +199,38 @@ class VehicleController extends Controller
             ]);
     }
 
+    /**
+     * Display the specified vehicle.
+     */
     public function show(Vehicle $vehicle)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicles.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les véhicules.');
+        }
+
         $this->authorize('view', $vehicle);
         $vehicle->load('model.brand');
-        return view('backoffice.vehicles.show', compact('vehicle'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicles.general.edit'),
+            'can_delete' => auth()->user()->can('vehicles.general.delete'),
+        ];
+
+        return view('backoffice.vehicles.show', compact('vehicle', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified vehicle.
+     */
     public function edit(Vehicle $vehicle)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicles.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les véhicules.');
+        }
+
         $this->authorize('update', $vehicle);
         $models = VehicleModel::where('agency_id', Auth::guard('backoffice')->user()->agency_id)
             ->with('brand')
@@ -186,8 +240,16 @@ class VehicleController extends Controller
         return view('backoffice.vehicles.partials._modal_edit', compact('vehicle', 'models'));
     }
 
+    /**
+     * Update the specified vehicle.
+     */
     public function update(VehicleUpdateRequest $request, Vehicle $vehicle)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicles.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les véhicules.');
+        }
+
         $this->authorize('update', $vehicle);
         $data = $request->validated();
         
@@ -195,7 +257,7 @@ class VehicleController extends Controller
         $data['has_gps'] = (bool) ($data['has_gps'] ?? false);
         $data['has_air_conditioning'] = (bool) ($data['has_air_conditioning'] ?? true);
         $data['has_bluetooth'] = (bool) ($data['has_bluetooth'] ?? false);
-        $data['has_baby_seat'] = (bool) ($data['has_baby_seat'] ?? false); // Changed from has_usb
+        $data['has_baby_seat'] = (bool) ($data['has_baby_seat'] ?? false);
         $data['has_camera_recul'] = (bool) ($data['has_camera_recul'] ?? false);
         $data['has_regulateur_vitesse'] = (bool) ($data['has_regulateur_vitesse'] ?? false);
         $data['has_siege_chauffant'] = (bool) ($data['has_siege_chauffant'] ?? false);
@@ -204,7 +266,6 @@ class VehicleController extends Controller
 
         $vehicle->update($data);
         
-        // ADDED: Create notification for update
         $this->createNotification('update', 'vehicle', $vehicle);
 
         if ($request->hasFile('photos')) {
@@ -230,15 +291,21 @@ class VehicleController extends Controller
             ]);
     }
 
+    /**
+     * Remove the specified vehicle.
+     */
     public function destroy(Vehicle $vehicle)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicles.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les véhicules.');
+        }
+
         $this->authorize('delete', $vehicle);
-         $item->delete();
-        // Store vehicle data for notification before delete
+
         $vehicleData = clone $vehicle;
         $vehicle->delete();
         
-        // ADDED: Create notification for delete
         $this->createNotification('destroy', 'vehicle', $vehicleData);
 
         return redirect()

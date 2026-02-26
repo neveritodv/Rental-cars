@@ -22,6 +22,11 @@ class TechnicalCheckController extends Controller
      */
     public function index(Request $request, $vehicleId)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-technical-checks.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrôles techniques.');
+        }
+
         // ============ GLOBAL VIEW - ALL VEHICLES ============
         if ($vehicleId === 'all') {
             $query = VehicleTechnicalCheck::with('vehicle');
@@ -83,11 +88,20 @@ class TechnicalCheckController extends Controller
 
             $technicalChecks = $query->paginate(15)->withQueryString();
 
+            // ✅ Passer les permissions à la vue
+            $permissions = [
+                'can_view' => auth()->user()->can('vehicle-technical-checks.general.view'),
+                'can_create' => auth()->user()->can('vehicle-technical-checks.general.create'),
+                'can_edit' => auth()->user()->can('vehicle-technical-checks.general.edit'),
+                'can_delete' => auth()->user()->can('vehicle-technical-checks.general.delete'),
+            ];
+
             return view('Backoffice.technical-checks.index', [
                 'vehicle' => null,
                 'technicalChecks' => $technicalChecks,
                 'availableYears' => collect([]),
-                'isGlobalView' => true
+                'isGlobalView' => true,
+                'permissions' => $permissions
             ]);
         }
         
@@ -168,7 +182,15 @@ class TechnicalCheckController extends Controller
             ->orderBy('year', 'desc')
             ->pluck('year') : collect([]);
 
-        return view('Backoffice.technical-checks.index', compact('vehicle', 'technicalChecks', 'availableYears'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-technical-checks.general.view'),
+            'can_create' => auth()->user()->can('vehicle-technical-checks.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-technical-checks.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-technical-checks.general.delete'),
+        ];
+
+        return view('Backoffice.technical-checks.index', compact('vehicle', 'technicalChecks', 'availableYears', 'permissions'));
     }
 
     /**
@@ -177,6 +199,11 @@ class TechnicalCheckController extends Controller
      */
     public function create(Vehicle $vehicle = null)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-technical-checks.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrôles techniques.');
+        }
+
         $vehicles = Vehicle::orderBy('registration_number')->get();
         return view('Backoffice.technical-checks.partials._modal_create', compact('vehicle', 'vehicles'));
     }
@@ -187,6 +214,11 @@ class TechnicalCheckController extends Controller
      */
     public function store(VehicleTechnicalCheckStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-technical-checks.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrôles techniques.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -201,7 +233,6 @@ class TechnicalCheckController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // FIXED: Use correct module name 'technical-check' and the actual technicalCheck object
             $this->createNotification('store', 'technical-check', $technicalCheck);
             
             DB::commit();
@@ -233,9 +264,21 @@ class TechnicalCheckController extends Controller
      */
     public function show(Vehicle $vehicle, VehicleTechnicalCheck $technicalCheck)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-technical-checks.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrôles techniques.');
+        }
+
         $this->authorize('view', $vehicle);
         $this->verifyResource($vehicle, $technicalCheck);
-        return view('Backoffice.technical-checks.show', compact('vehicle', 'technicalCheck'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-technical-checks.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-technical-checks.general.delete'),
+        ];
+
+        return view('Backoffice.technical-checks.show', compact('vehicle', 'technicalCheck', 'permissions'));
     }
 
     /**
@@ -244,6 +287,11 @@ class TechnicalCheckController extends Controller
      */
     public function edit(Vehicle $vehicle, VehicleTechnicalCheck $technicalCheck)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-technical-checks.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrôles techniques.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $technicalCheck);
         $vehicles = Vehicle::orderBy('registration_number')->get();
@@ -256,6 +304,11 @@ class TechnicalCheckController extends Controller
      */
     public function update(VehicleTechnicalCheckUpdateRequest $request, Vehicle $vehicle, VehicleTechnicalCheck $technicalCheck)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-technical-checks.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrôles techniques.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $technicalCheck);
 
@@ -271,7 +324,6 @@ class TechnicalCheckController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'technical-check', $technicalCheck);
 
             DB::commit();
@@ -303,6 +355,11 @@ class TechnicalCheckController extends Controller
      */
     public function destroy(Request $request, $vehicleId, VehicleTechnicalCheck $technicalCheck)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-technical-checks.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les contrôles techniques.');
+        }
+
         if ($technicalCheck->vehicle_id != $vehicleId) {
             abort(404);
         }
@@ -312,11 +369,9 @@ class TechnicalCheckController extends Controller
         try {
             DB::beginTransaction();
             
-            // Store technical check data for notification before delete
             $technicalCheckData = clone $technicalCheck;
             $technicalCheck->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'technical-check', $technicalCheckData);
             
             DB::commit();

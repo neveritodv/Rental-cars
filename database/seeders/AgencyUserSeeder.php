@@ -36,14 +36,47 @@ class AgencyUserSeeder extends Seeder
             ]
         );
 
-        // Users (update or create)
+        // Create users (roles will be assigned in AgencyRolesPermissionsSeeder)
+        User::updateOrCreate(
+            ['email' => 'super@admin.com'],
+            [
+                'agency_id' => null,
+                'name' => 'Super Admin',
+                'password' => Hash::make('password123'),
+                'phone' => '+212600000999',
+                'status' => 'active',
+            ]
+        );
+
         User::updateOrCreate(
             ['email' => 'admin@agency1.com'],
             [
                 'agency_id' => $agency1->id,
-                'name' => 'Admin User',
+                'name' => 'Agency Admin',
                 'password' => Hash::make('password123'),
                 'phone' => '+212600000003',
+                'status' => 'active',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'manager@agency1.com'],
+            [
+                'agency_id' => $agency1->id,
+                'name' => 'Agency Manager',
+                'password' => Hash::make('password123'),
+                'phone' => '+212600000010',
+                'status' => 'active',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'staff@agency1.com'],
+            [
+                'agency_id' => $agency1->id,
+                'name' => 'Agency Staff',
+                'password' => Hash::make('password123'),
+                'phone' => '+212600000011',
                 'status' => 'active',
             ]
         );
@@ -70,10 +103,14 @@ class AgencyUserSeeder extends Seeder
             ]
         );
 
-
-        $this->command?->info("Seed OK ✅");
-        $this->command?->info("Login admin: admin@agency1.com / password123");
-        $this->command?->info("Dashboard: /backoffice/dashboard");
-        $this->command?->info("Demo login (optional): /backoffice/login/demo");
+        $this->command?->info("✅ Agency users created successfully");
+        $this->command?->info("");
+        $this->command?->info("📋 Test Accounts (roles will be assigned in next seeder):");
+        $this->command?->info("  super@admin.com / password123");
+        $this->command?->info("  admin@agency1.com / password123");
+        $this->command?->info("  manager@agency1.com / password123");
+        $this->command?->info("  staff@agency1.com / password123");
+        $this->command?->info("");
+        $this->command?->info("👉 Next: Run RolesAndSuperAdminSeeder then AgencyRolesPermissionsSeeder");
     }
 }

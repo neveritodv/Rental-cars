@@ -73,46 +73,38 @@
                         </div>
                     </div>
 
-                    <!-- STATUS DROPDOWN - VISUAL ONLY, NO FUNCTIONALITY -->
-                    <div class="dropdown">
-                        <a href="javascript:void(0);" class="dropdown-toggle btn btn-white d-inline-flex align-items-center"
-                            data-bs-toggle="dropdown">
-                            <i class="ti ti-badge me-1"></i> Statut
+                    <!-- Bouton Ajouter - contrôlé par permission CREATE -->
+                    @can('vehicle-models.general.create')
+                    <div class="mb-0">
+                        <a href="javascript:void(0);"
+                           class="btn btn-primary d-flex align-items-center"
+                           data-bs-toggle="modal"
+                           data-bs-target="#add_model">
+                            <i class="ti ti-plus me-2"></i>Ajouter un modèle
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end p-2">
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">
-                                    Tous
-                                </a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">
-                                    Actif
-                                </a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">
-                                    Inactif
-                                </a>
-                            </li>
-                        </ul>
                     </div>
+                    @endcan
                 </div>
             </form>
             <!-- /FILTER FORM -->
 
             <!-- Custom Data Table -->
             <div class="custom-datatable-filter table-responsive">
-                @include('backoffice.vehicle-models.partials._table', ['models' => $models])
+                @include('backoffice.vehicle-models.partials._table', ['models' => $models, 'permissions' => $permissions])
             </div>
             <!-- Custom Data Table -->
 
             <!-- Pagination -->
-            <div class="table-footer">
-                <div class="d-flex justify-content-end">
+            @if($models->total() > 0)
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Affichage de {{ $models->firstItem() }} à {{ $models->lastItem() }} sur {{ $models->total() }} modèles
+                </div>
+                <div>
                     {{ $models->withQueryString()->links() }}
                 </div>
             </div>
+            @endif
 
         </div>
 

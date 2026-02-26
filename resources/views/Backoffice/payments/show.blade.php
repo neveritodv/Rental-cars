@@ -146,7 +146,8 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div class="d-flex gap-2">
-                        @if($payment->status == 'pending')
+                        {{-- Bouton Confirmer - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_confirm']) && $permissions['can_confirm'] && $payment->status == 'pending')
                         <form action="{{ route('backoffice.payments.status', $payment) }}" method="POST" style="display: inline;">
                             @csrf
                             <input type="hidden" name="status" value="confirmed">
@@ -155,9 +156,13 @@
                             </button>
                         </form>
                         @endif
+                        
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.payments.edit', $payment) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -300,9 +305,14 @@
                                         <div class="col-md-12">
                                             <div class="info-label">N° Facture</div>
                                             <div class="info-value">
-                                                <a href="{{ route('backoffice.invoices.show', $payment->invoice_id) }}">
-                                                    {{ $payment->invoice->invoice_number }}
-                                                </a>
+                                                {{-- Lien vers facture - contrôlé par permission VIEW sur factures --}}
+                                                @can('invoices.general.view')
+                                                    <a href="{{ route('backoffice.invoices.show', $payment->invoice_id) }}">
+                                                        {{ $payment->invoice->invoice_number }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $payment->invoice->invoice_number }}</span>
+                                                @endcan
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -338,14 +348,28 @@
                                         <div class="col-md-12">
                                             <div class="info-label">N° Contrat</div>
                                             <div class="info-value">
-                                                <a href="{{ route('backoffice.rental-contracts.show', $payment->rental_contract_id) }}">
-                                                    {{ $payment->rentalContract->contract_number }}
-                                                </a>
+                                                {{-- Lien vers contrat - contrôlé par permission VIEW sur contrats --}}
+                                                @can('rental-contracts.general.view')
+                                                    <a href="{{ route('backoffice.rental-contracts.show', $payment->rental_contract_id) }}">
+                                                        {{ $payment->rentalContract->contract_number }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $payment->rentalContract->contract_number }}</span>
+                                                @endcan
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="info-label">Client</div>
-                                            <div class="info-value">{{ $payment->rentalContract->client->first_name ?? '' }} {{ $payment->rentalContract->client->last_name ?? '' }}</div>
+                                            <div class="info-value">
+                                                {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                                @can('clients.general.view')
+                                                    <a href="{{ route('backoffice.clients.show', $payment->rentalContract->client_id) }}">
+                                                        {{ $payment->rentalContract->client->first_name ?? '' }} {{ $payment->rentalContract->client->last_name ?? '' }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $payment->rentalContract->client->first_name ?? '' }} {{ $payment->rentalContract->client->last_name ?? '' }}</span>
+                                                @endcan
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="info-label">Montant</div>
@@ -383,9 +407,14 @@
                                     <div class="col-md-6">
                                         <div class="info-label">Nom du compte</div>
                                         <div class="info-value">
-                                            <a href="{{ route('backoffice.finance.accounts.show', $payment->financial_account_id) }}">
-                                                {{ $payment->financialAccount->name }}
-                                            </a>
+                                            {{-- Lien vers compte - contrôlé par permission VIEW sur comptes --}}
+                                            @can('financial-accounts.general.view')
+                                                <a href="{{ route('backoffice.finance.accounts.show', $payment->financial_account_id) }}">
+                                                    {{ $payment->financialAccount->name }}
+                                                </a>
+                                            @else
+                                                <span>{{ $payment->financialAccount->name }}</span>
+                                            @endcan
                                         </div>
                                     </div>
                                     <div class="col-md-6">

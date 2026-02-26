@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class TransactionCategoryController extends Controller
 {
@@ -18,24 +19,31 @@ class TransactionCategoryController extends Controller
     /**
      * Display a listing of transaction categories.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('transaction-categories.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les catégories.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
-        $query = TransactionCategory::where('agency_id', $agencyId);
+        $query = TransactionCategory::where('agency_id', $agencyId)
+            ->withCount('transactions')
+            ->withSum('transactions as total_amount', 'amount');
 
-        // Search
+        // 🔎 Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%");
         }
 
-        // Filter by type
+        // 🏷️ Filter by type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Sort
+        // 🔤 Sort
         $sort = $request->get('sort', 'latest');
         if ($sort === 'oldest') {
             $query->orderBy('created_at', 'asc');
@@ -49,7 +57,15 @@ class TransactionCategoryController extends Controller
 
         $categories = $query->paginate(15)->withQueryString();
 
-        return view('backoffice.finance.categories.index', compact('categories'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('transaction-categories.general.view'),
+            'can_create' => auth()->user()->can('transaction-categories.general.create'),
+            'can_edit' => auth()->user()->can('transaction-categories.general.edit'),
+            'can_delete' => auth()->user()->can('transaction-categories.general.delete'),
+        ];
+
+        return view('backoffice.finance.categories.index', compact('categories', 'permissions'));
     }
 
     /**
@@ -57,6 +73,11 @@ class TransactionCategoryController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('transaction-categories.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des catégories.');
+        }
+
         return view('backoffice.finance.categories.partials._modal_create');
     }
 
@@ -65,6 +86,11 @@ class TransactionCategoryController extends Controller
      */
     public function store(TransactionCategoryStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('transaction-categories.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des catégories.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -73,7 +99,6 @@ class TransactionCategoryController extends Controller
 
             $category = TransactionCategory::create($data);
             
-            // FIXED: Use correct module name 'transaction-category' and the actual category object
             $this->createNotification('store', 'transaction-category', $category);
             
             DB::commit();
@@ -104,13 +129,31 @@ class TransactionCategoryController extends Controller
      */
     public function show(TransactionCategory $transactionCategory)
     {
-       // $this->authorize('view', $transactionCategory);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('transaction-categories.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les catégories.');
+        }
+
+        // Vérifier que la catégorie appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($transactionCategory->agency_id !== $agencyId) {
+            abort(403, 'Cette catégorie n\'appartient pas à votre agence.');
+        }
 
         $transactionCategory->load(['transactions' => function($q) {
-            $q->latest()->limit(10);
+            $q->latest()->with('account')->limit(10);
         }]);
 
-        return view('backoffice.finance.categories.show', compact('transactionCategory'));
+        $transactionCategory->loadCount('transactions');
+        $transactionCategory->loadSum('transactions as total_amount', 'amount');
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('transaction-categories.general.edit'),
+            'can_delete' => auth()->user()->can('transaction-categories.general.delete'),
+        ];
+
+        return view('backoffice.finance.categories.show', compact('transactionCategory', 'permissions'));
     }
 
     /**
@@ -118,7 +161,16 @@ class TransactionCategoryController extends Controller
      */
     public function edit(TransactionCategory $transactionCategory)
     {
-       // $this->authorize('update', $transactionCategory);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('transaction-categories.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les catégories.');
+        }
+
+        // Vérifier que la catégorie appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($transactionCategory->agency_id !== $agencyId) {
+            abort(403, 'Cette catégorie n\'appartient pas à votre agence.');
+        }
 
         return view('backoffice.finance.categories.partials._modal_edit', compact('transactionCategory'));
     }
@@ -128,14 +180,22 @@ class TransactionCategoryController extends Controller
      */
     public function update(TransactionCategoryUpdateRequest $request, TransactionCategory $transactionCategory)
     {
-       // $this->authorize('update', $transactionCategory);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('transaction-categories.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les catégories.');
+        }
+
+        // Vérifier que la catégorie appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($transactionCategory->agency_id !== $agencyId) {
+            abort(403, 'Cette catégorie n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
 
             $transactionCategory->update($request->validated());
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'transaction-category', $transactionCategory);
 
             DB::commit();
@@ -166,7 +226,16 @@ class TransactionCategoryController extends Controller
      */
     public function destroy(TransactionCategory $transactionCategory)
     {
-        $this->authorize('delete', $transactionCategory);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('transaction-categories.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les catégories.');
+        }
+
+        // Vérifier que la catégorie appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($transactionCategory->agency_id !== $agencyId) {
+            abort(403, 'Cette catégorie n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
@@ -186,7 +255,6 @@ class TransactionCategoryController extends Controller
             $categoryData = clone $transactionCategory;
             $transactionCategory->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'transaction-category', $categoryData);
             
             DB::commit();

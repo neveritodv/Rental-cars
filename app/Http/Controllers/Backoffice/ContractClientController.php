@@ -22,6 +22,11 @@ class ContractClientController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('contract-clients.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les relations client-contrat.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = ContractClient::with(['rentalContract', 'client'])
@@ -72,7 +77,15 @@ class ContractClientController extends Controller
         $contracts = RentalContract::where('agency_id', $agencyId)->orderBy('contract_number')->get();
         $clients = Client::where('agency_id', $agencyId)->orderBy('first_name')->get();
 
-        return view('backoffice.contract-clients.index', compact('contractClients', 'contracts', 'clients'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('contract-clients.general.view'),
+            'can_create' => auth()->user()->can('contract-clients.general.create'),
+            'can_edit' => auth()->user()->can('contract-clients.general.edit'),
+            'can_delete' => auth()->user()->can('contract-clients.general.delete'),
+        ];
+
+        return view('backoffice.contract-clients.index', compact('contractClients', 'contracts', 'clients', 'permissions'));
     }
 
     /**
@@ -80,6 +93,11 @@ class ContractClientController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('contract-clients.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des relations client-contrat.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
         $contracts = RentalContract::where('agency_id', $agencyId)
@@ -103,6 +121,11 @@ class ContractClientController extends Controller
      */
     public function store(ContractClientStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('contract-clients.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des relations client-contrat.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -142,7 +165,6 @@ class ContractClientController extends Controller
 
             $contractClient = ContractClient::create($data);
             
-            // FIXED: Use correct module name 'contract-client' and the actual contractClient object
             $this->createNotification('store', 'contract-client', $contractClient);
 
             DB::commit();
@@ -173,9 +195,20 @@ class ContractClientController extends Controller
      */
     public function show(ContractClient $contractClient)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('contract-clients.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les relations client-contrat.');
+        }
+
         $contractClient->load(['rentalContract', 'client']);
 
-        return view('backoffice.contract-clients.show', compact('contractClient'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('contract-clients.general.edit'),
+            'can_delete' => auth()->user()->can('contract-clients.general.delete'),
+        ];
+
+        return view('backoffice.contract-clients.show', compact('contractClient', 'permissions'));
     }
 
     /**
@@ -183,6 +216,11 @@ class ContractClientController extends Controller
      */
     public function edit(ContractClient $contractClient)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('contract-clients.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les relations client-contrat.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
         $contracts = RentalContract::where('agency_id', $agencyId)
@@ -201,6 +239,11 @@ class ContractClientController extends Controller
      */
     public function update(ContractClientUpdateRequest $request, ContractClient $contractClient)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('contract-clients.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les relations client-contrat.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -226,7 +269,6 @@ class ContractClientController extends Controller
 
             $contractClient->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'contract-client', $contractClient);
 
             DB::commit();
@@ -257,14 +299,17 @@ class ContractClientController extends Controller
      */
     public function destroy(ContractClient $contractClient)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('contract-clients.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les relations client-contrat.');
+        }
+
         try {
             DB::beginTransaction();
- $item->delete();
-            // Store contract client data for notification before delete
+
             $contractClientData = clone $contractClient;
             $contractClient->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'contract-client', $contractClientData);
             
             DB::commit();

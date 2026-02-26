@@ -165,21 +165,38 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div class="d-flex gap-2">
+                        {{-- Boutons d'action - contrôlés par permissions --}}
+                        
+                        {{-- Imprimer - visible si permission VIEW --}}
+                        @can('invoices.general.view')
                         <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
                             <i class="ti ti-printer me-1"></i>Imprimer
                         </button>
+                        @endcan
+                        
+                        {{-- Télécharger PDF - visible si permission VIEW --}}
+                        @can('invoices.general.view')
                         <a href="{{ route('backoffice.invoices.pdf.single', $invoice->id) }}" class="btn btn-danger" target="_blank">
                             <i class="ti ti-file-text me-1"></i>Télécharger PDF
                         </a>
-                        @if($invoice->client && $invoice->client->phone)
-                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}?text={{ urlencode('Bonjour, voici votre facture #' . $invoice->invoice_number . ' : ' . route('backoffice.invoices.pdf.single', $invoice->id, true)) }}" 
-                           class="btn btn-success" target="_blank">
-                            <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
-                        </a>
-                        @endif
+                        @endcan
+                        
+                        {{-- WhatsApp - visible si client a téléphone et permission VIEW --}}
+                        @can('invoices.general.view')
+                            @if($invoice->client && $invoice->client->phone)
+                            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}?text={{ urlencode('Bonjour, voici votre facture #' . $invoice->invoice_number . ' : ' . route('backoffice.invoices.pdf.single', $invoice->id, true)) }}" 
+                               class="btn btn-success" target="_blank">
+                                <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                            </a>
+                            @endif
+                        @endcan
+                        
+                        {{-- Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.invoices.edit', $invoice) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -245,12 +262,14 @@
                             <div class="card mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="card-title mb-0">Client</h5>
-                                    @if($invoice->client && $invoice->client->phone)
-                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}" 
-                                       class="btn btn-sm btn-success" target="_blank">
-                                        <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
-                                    </a>
-                                    @endif
+                                    @can('invoices.general.view')
+                                        @if($invoice->client && $invoice->client->phone)
+                                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}" 
+                                           class="btn btn-sm btn-success" target="_blank">
+                                            <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                                        </a>
+                                        @endif
+                                    @endcan
                                 </div>
                                 <div class="card-body">
                                     @if($invoice->client)
@@ -258,19 +277,26 @@
                                             <div class="col-md-12">
                                                 <div class="info-label">Nom</div>
                                                 <div class="info-value">
-                                                    <a href="{{ route('backoffice.clients.show', $invoice->client_id) }}">
+                                                    {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                                    @can('clients.general.view')
+                                                        <a href="{{ route('backoffice.clients.show', $invoice->client_id) }}">
+                                                            {{ $invoice->client->first_name }} {{ $invoice->client->last_name }}
+                                                        </a>
+                                                    @else
                                                         {{ $invoice->client->first_name }} {{ $invoice->client->last_name }}
-                                                    </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="info-label">Téléphone</div>
                                                 <div class="info-value">
                                                     {{ $invoice->client->phone }}
-                                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}" 
-                                                       class="ms-2 text-success" target="_blank">
-                                                        <i class="ti ti-brand-whatsapp"></i>
-                                                    </a>
+                                                    @can('invoices.general.view')
+                                                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $invoice->client->phone) }}" 
+                                                           class="ms-2 text-success" target="_blank">
+                                                            <i class="ti ti-brand-whatsapp"></i>
+                                                        </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -295,9 +321,14 @@
                                             <div class="col-md-12">
                                                 <div class="info-label">N° Contrat</div>
                                                 <div class="info-value">
-                                                    <a href="{{ route('backoffice.rental-contracts.show', $invoice->rental_contract_id) }}">
+                                                    {{-- Lien vers contrat - contrôlé par permission VIEW sur contrats --}}
+                                                    @can('rental-contracts.general.view')
+                                                        <a href="{{ route('backoffice.rental-contracts.show', $invoice->rental_contract_id) }}">
+                                                            {{ $invoice->rentalContract->contract_number }}
+                                                        </a>
+                                                    @else
                                                         {{ $invoice->rentalContract->contract_number }}
-                                                    </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -409,6 +440,7 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Aperçu PDF</h5>
                             <div class="d-flex gap-2">
+                                @can('invoices.general.view')
                                 <a href="{{ route('backoffice.invoices.pdf.single', $invoice->id) }}" class="btn btn-sm btn-danger" target="_blank">
                                     <i class="ti ti-download me-1"></i>Télécharger
                                 </a>
@@ -418,6 +450,7 @@
                                     <i class="ti ti-brand-whatsapp me-1"></i>Partager
                                 </a>
                                 @endif
+                                @endcan
                             </div>
                         </div>
                         <div class="card-body">
@@ -439,9 +472,12 @@
                             <i class="ti ti-file-description me-2"></i>
                             Lignes de facture
                         </h5>
+                        {{-- Ajouter une ligne - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_add_items']) && $permissions['can_add_items'])
                         <a href="{{ route('backoffice.invoice-items.create', ['invoice_id' => $invoice->id]) }}" class="btn btn-sm btn-primary">
                             <i class="ti ti-plus me-1"></i>Ajouter une ligne
                         </a>
+                        @endif
                     </div>
                     <div class="card-body p-0">
                         @if($invoice->items && $invoice->items->count() > 0)
@@ -470,6 +506,8 @@
                                             <td>{{ $item->vat_rate ? $item->vat_rate . '%' : '—' }}</td>
                                             <td><span class="amount-badge">{{ number_format($item->total_ttc, 2, ',', ' ') }} {{ $invoice->currency }}</span></td>
                                             <td>
+                                                {{-- Actions sur les lignes - contrôlées par permission EDIT --}}
+                                                @if(isset($permissions['can_add_items']) && $permissions['can_add_items'])
                                                 <div class="dropdown">
                                                     <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown">
                                                         <i class="ti ti-dots-vertical"></i>
@@ -495,6 +533,7 @@
                                                         </li>
                                                     </ul>
                                                 </div>
+                                                @endif
                                             </td>
                                         </tr>
                                         @endforeach
@@ -515,9 +554,11 @@
                                 <i class="ti ti-file-description fs-48 text-gray-4 mb-3"></i>
                                 <h6 class="mb-2">Aucune ligne</h6>
                                 <p class="text-muted mb-3">Cette facture n'a pas encore de lignes</p>
+                                @if(isset($permissions['can_add_items']) && $permissions['can_add_items'])
                                 <a href="{{ route('backoffice.invoice-items.create', ['invoice_id' => $invoice->id]) }}" class="btn btn-primary btn-sm">
                                     <i class="ti ti-plus me-1"></i>Ajouter une ligne
                                 </a>
+                                @endif
                             </div>
                         @endif
                     </div>

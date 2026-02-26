@@ -9,14 +9,20 @@ use App\Models\Client;
 use App\Models\Agency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ClientController extends Controller
 {
     /**
      * Display a listing of the clients.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('clients.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les clients.');
+        }
+
         $query = Client::with(['agency']);
 
         // 🔎 SEARCH
@@ -60,7 +66,15 @@ class ClientController extends Controller
         $clients = $query->paginate(15)->withQueryString();
         $agencies = Agency::all();
 
-        return view('backoffice.clients.index', compact('clients', 'agencies'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('clients.general.view'),
+            'can_create' => auth()->user()->can('clients.general.create'),
+            'can_edit' => auth()->user()->can('clients.general.edit'),
+            'can_delete' => auth()->user()->can('clients.general.delete'),
+        ];
+
+        return view('backoffice.clients.index', compact('clients', 'agencies', 'permissions'));
     }
 
     /**
@@ -68,6 +82,11 @@ class ClientController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('clients.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des clients.');
+        }
+
         $agencies = Agency::all();
 
         return view('backoffice.clients.partials._modal_create', compact('agencies'));
@@ -78,6 +97,11 @@ class ClientController extends Controller
      */
     public function store(ClientStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('clients.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des clients.');
+        }
+
         $validated = $request->validated();
 
         try {
@@ -101,7 +125,6 @@ class ClientController extends Controller
                     ->toMediaCollection('client_avatar');
             }
 
-            // FIXED: Use correct module name 'client' and the actual client object
             $this->createNotification('store', 'client', $client);
 
             DB::commit();
@@ -111,7 +134,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Créé',
                     'message' => 'Client créé avec succès.',
-                    'dot'     => '#198754', // green
+                    'dot'     => '#198754',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -124,7 +147,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la création: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -134,11 +157,22 @@ class ClientController extends Controller
     /**
      * Display the specified client.
      */
-    public function show(Client $client)
+    public function show(Client $client): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('clients.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les clients.');
+        }
+
         $client->load(['agency']);
 
-        return view('backoffice.clients.show', compact('client'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('clients.general.edit'),
+            'can_delete' => auth()->user()->can('clients.general.delete'),
+        ];
+
+        return view('backoffice.clients.show', compact('client', 'permissions'));
     }
 
     /**
@@ -146,6 +180,11 @@ class ClientController extends Controller
      */
     public function edit(Client $client)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('clients.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les clients.');
+        }
+
         $client->load(['agency']);
         $agencies = Agency::all();
 
@@ -157,6 +196,11 @@ class ClientController extends Controller
      */
     public function update(ClientUpdateRequest $request, Client $client)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('clients.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les clients.');
+        }
+
         $validated = $request->validated();
 
         try {
@@ -182,7 +226,6 @@ class ClientController extends Controller
                     ->toMediaCollection('client_avatar');
             }
 
-            // ADDED: Create notification for update
             $this->createNotification('update', 'client', $client);
 
             DB::commit();
@@ -192,7 +235,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Mis à jour',
                     'message' => 'Client mis à jour avec succès.',
-                    'dot'     => '#0d6efd', // blue
+                    'dot'     => '#0d6efd',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -205,7 +248,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -217,16 +260,19 @@ class ClientController extends Controller
      */
     public function destroy(Client $client)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('clients.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les clients.');
+        }
+
         try {
             DB::beginTransaction();
 
             // Store client data for notification before delete
             $clientData = clone $client;
             
-            // Media Library will automatically delete associated media on model deletion
             $client->delete();
-             $item->delete();
-            // ADDED: Create notification for delete
+
             $this->createNotification('destroy', 'client', $clientData);
 
             DB::commit();
@@ -236,7 +282,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Supprimé',
                     'message' => 'Client supprimé avec succès.',
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -248,7 +294,7 @@ class ClientController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la suppression: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);

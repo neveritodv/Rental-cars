@@ -15,8 +15,16 @@ class VehicleModelController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of vehicle models.
+     */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-models.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les modèles.');
+        }
+
         $query = VehicleModel::where('agency_id', Auth::user()->agency_id)
             ->with('brand');
 
@@ -37,11 +45,27 @@ class VehicleModelController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('backoffice.vehicle-models.index', compact('models', 'brands'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-models.general.view'),
+            'can_create' => auth()->user()->can('vehicle-models.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-models.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-models.general.delete'),
+        ];
+
+        return view('backoffice.vehicle-models.index', compact('models', 'brands', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new model.
+     */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-models.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des modèles.');
+        }
+
         $vehicleModels = VehicleModel::where('agency_id', Auth::user()->agency_id)
             ->with('brand')
             ->orderBy('name')
@@ -50,14 +74,21 @@ class VehicleModelController extends Controller
         return view('backoffice.vehicles.create', compact('vehicleModels'));
     }
 
+    /**
+     * Store a newly created model.
+     */
     public function store(VehicleModelStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-models.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des modèles.');
+        }
+
         $data = $request->validated();
         $data['agency_id'] = Auth::user()->agency_id;
 
         $model = VehicleModel::create($data);
         
-        // FIXED: Use correct module name 'vehicle-model' and the actual model object
         $this->createNotification('store', 'vehicle-model', $model);
 
         return redirect()
@@ -65,23 +96,45 @@ class VehicleModelController extends Controller
             ->with('toast', [
                 'title'   => 'Créé',
                 'message' => 'Modèle de véhicule créé avec succès.',
-                'dot'     => '#198754', // green
+                'dot'     => '#198754',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Display the specified model.
+     */
     public function show(VehicleModel $vehicleModel)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-models.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les modèles.');
+        }
+
         $this->authorize('view', $vehicleModel);
 
         $vehicleModel->load('brand');
 
-        return view('backoffice.vehicle-models.show', compact('vehicleModel'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-models.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-models.general.delete'),
+        ];
+
+        return view('backoffice.vehicle-models.show', compact('vehicleModel', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified model.
+     */
     public function edit(VehicleModel $vehicleModel)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-models.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les modèles.');
+        }
+
         $this->authorize('update', $vehicleModel);
 
         $brands = VehicleBrand::where('agency_id', Auth::user()->agency_id)
@@ -91,8 +144,16 @@ class VehicleModelController extends Controller
         return view('backoffice.vehicle-models.edit', compact('vehicleModel', 'brands'));
     }
 
+    /**
+     * Update the specified model.
+     */
     public function update(VehicleModelUpdateRequest $request, VehicleModel $vehicleModel)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-models.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les modèles.');
+        }
+
         $this->authorize('update', $vehicleModel);
 
         $vehicleModel->update([
@@ -101,7 +162,6 @@ class VehicleModelController extends Controller
             'is_active' => $request->status === 'active',
         ]);
         
-        // ADDED: Create notification for update
         $this->createNotification('update', 'vehicle-model', $vehicleModel);
 
         return redirect()
@@ -109,21 +169,27 @@ class VehicleModelController extends Controller
             ->with('toast', [
                 'title'   => 'Mis à jour',
                 'message' => 'Modèle de véhicule mis à jour avec succès.',
-                'dot'     => '#0d6efd', // blue
+                'dot'     => '#0d6efd',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);
     }
 
+    /**
+     * Remove the specified model.
+     */
     public function destroy(VehicleModel $vehicleModel)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-models.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les modèles.');
+        }
+
         $this->authorize('delete', $vehicleModel);
- $item->delete();
-        // Store model data for notification before delete
+
         $modelData = clone $vehicleModel;
         $vehicleModel->delete();
         
-        // ADDED: Create notification for delete
         $this->createNotification('destroy', 'vehicle-model', $modelData);
 
         return redirect()
@@ -131,7 +197,7 @@ class VehicleModelController extends Controller
             ->with('toast', [
                 'title'   => 'Supprimé',
                 'message' => 'Modèle de véhicule supprimé.',
-                'dot'     => '#dc3545', // red
+                'dot'     => '#dc3545',
                 'delay'   => 3500,
                 'time'    => 'now',
             ]);

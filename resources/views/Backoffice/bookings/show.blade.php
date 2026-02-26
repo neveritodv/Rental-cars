@@ -76,9 +76,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.bookings.edit', $booking) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -154,9 +157,14 @@
                                             <div class="col-md-6">
                                                 <div class="info-label">Nom</div>
                                                 <div class="info-value">
-                                                    <a href="{{ route('backoffice.clients.show', $booking->client_id) }}">
+                                                    {{-- Lien vers show client - contrôlé par permission VIEW sur clients --}}
+                                                    @can('clients.general.view')
+                                                        <a href="{{ route('backoffice.clients.show', $booking->client_id) }}">
+                                                            {{ $booking->client->first_name }} {{ $booking->client->last_name }}
+                                                        </a>
+                                                    @else
                                                         {{ $booking->client->first_name }} {{ $booking->client->last_name }}
-                                                    </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -192,9 +200,14 @@
                                             <div class="col-md-6">
                                                 <div class="info-label">Véhicule</div>
                                                 <div class="info-value">
-                                                    <a href="{{ route('backoffice.vehicles.show', $booking->vehicle_id) }}">
+                                                    {{-- Lien vers show véhicule - contrôlé par permission VIEW sur véhicules --}}
+                                                    @can('vehicles.general.view')
+                                                        <a href="{{ route('backoffice.vehicles.show', $booking->vehicle_id) }}">
+                                                            {{ $booking->vehicle->registration_number }}
+                                                        </a>
+                                                    @else
                                                         {{ $booking->vehicle->registration_number }}
-                                                    </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -323,8 +336,8 @@
                     </div>
                 </div>
 
-                <!-- Convert to Contract Button (if pending) -->
-                @if($booking->status == 'pending')
+                <!-- Convert to Contract Button (if pending) - contrôlé par permission EDIT -->
+                @if($booking->status == 'pending' && isset($permissions['can_edit']) && $permissions['can_edit'])
                 <div class="card mb-4 border-primary">
                     <div class="card-body text-center">
                         <h5 class="mb-3">Convertir cette réservation en contrat</h5>

@@ -2,34 +2,48 @@
     <table class="table align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('rental-contracts.general.delete')
                 <th width="50" class="text-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 <th>N° Contrat</th>
                 <th>Client</th>
                 <th>Véhicule</th>
                 <th>Dates</th>
                 <th>Montant</th>
                 <th>Statut</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['rental-contracts.general.view', 'rental-contracts.general.edit', 'rental-contracts.general.delete'])
                 <th width="120">Actions</th>
+                @endcanany
             </tr>
         </thead>
         <tbody>
             @forelse($contracts as $contract)
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('rental-contracts.general.delete')
                 <td class="text-center">
                     <div class="form-check">
                         <input class="form-check-input contract-checkbox" type="checkbox" value="{{ $contract->id }}">
                     </div>
                 </td>
+                @endcan
                 
                 <td>
                     <div class="contract-info">
-                        <a href="{{ route('backoffice.rental-contracts.show', $contract) }}" class="fw-medium">
-                            {{ $contract->contract_number }}
-                        </a>
+                        {{-- Lien vers show - contrôlé par permission VIEW --}}
+                        @can('rental-contracts.general.view')
+                            <a href="{{ route('backoffice.rental-contracts.show', $contract) }}" class="fw-medium">
+                                {{ $contract->contract_number }}
+                            </a>
+                        @else
+                            <span class="fw-medium">{{ $contract->contract_number }}</span>
+                        @endcan
                         <br>
                         <small>
                             <i class="ti ti-calendar me-1"></i>{{ $contract->created_at->format('d/m/Y') }}
@@ -39,21 +53,41 @@
                 
                 <td>
                     <div class="contract-info">
-                        <span class="fw-medium">{{ $contract->primaryClient->first_name ?? '' }} {{ $contract->primaryClient->last_name ?? '' }}</span>
-                        <br>
-                        <small>
-                            <i class="ti ti-phone me-1"></i>{{ $contract->primaryClient->phone ?? 'N/A' }}
-                        </small>
+                        @if($contract->primaryClient)
+                            {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                            @can('clients.general.view')
+                                <a href="{{ route('backoffice.clients.show', $contract->primary_client_id) }}" class="fw-medium">
+                                    {{ $contract->primaryClient->first_name ?? '' }} {{ $contract->primaryClient->last_name ?? '' }}
+                                </a>
+                            @else
+                                <span class="fw-medium">{{ $contract->primaryClient->first_name ?? '' }} {{ $contract->primaryClient->last_name ?? '' }}</span>
+                            @endcan
+                            <br>
+                            <small>
+                                <i class="ti ti-phone me-1"></i>{{ $contract->primaryClient->phone ?? 'N/A' }}
+                            </small>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
                     </div>
                 </td>
                 
                 <td>
                     <div class="contract-info">
-                        <a href="{{ route('backoffice.vehicles.show', $contract->vehicle_id) }}" class="fw-medium">
-                            {{ $contract->vehicle->registration_number ?? 'N/A' }}
-                        </a>
-                        <br>
-                        <small>{{ $contract->vehicle->model->name ?? 'N/C' }}</small>
+                        @if($contract->vehicle)
+                            {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                            @can('vehicles.general.view')
+                                <a href="{{ route('backoffice.vehicles.show', $contract->vehicle_id) }}" class="fw-medium">
+                                    {{ $contract->vehicle->registration_number ?? 'N/A' }}
+                                </a>
+                            @else
+                                <span class="fw-medium">{{ $contract->vehicle->registration_number ?? 'N/A' }}</span>
+                            @endcan
+                            <br>
+                            <small>{{ $contract->vehicle->model->name ?? '' }}</small>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
                     </div>
                 </td>
                 
@@ -82,64 +116,41 @@
                     </small>
                 </td>
                 
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['rental-contracts.general.view', 'rental-contracts.general.edit', 'rental-contracts.general.delete'])
                 <td class="text-center">
-                    <div class="dropdown">
-                        <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="ti ti-dots-vertical"></i>
-                        </button>
-
-                        <ul class="dropdown-menu dropdown-menu-end p-2">
-                            <li>
-                                <a class="dropdown-item rounded-1" href="{{ route('backoffice.rental-contracts.show', $contract) }}">
-                                    <i class="ti ti-eye me-2"></i>Voir détails
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item rounded-1" href="{{ route('backoffice.rental-contracts.edit', $contract) }}">
-                                    <i class="ti ti-edit me-2"></i>Modifier
-                                </a>
-                            </li>
-                            <!-- PDF Export Button -->
-                            <li>
-                                <a class="dropdown-item rounded-1" href="{{ route('backoffice.contracts.pdf.single', $contract->id) }}" target="_blank">
-                                    <i class="ti ti-file-text me-2" style="color: #dc3545;"></i>Exporter PDF
-                                </a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <a class="dropdown-item rounded-1 text-danger" 
-                                   href="javascript:void(0);"
-                                   data-bs-toggle="modal" 
-                                   data-bs-target="#deleteContractModal"
-                                   data-delete-action="{{ route('backoffice.rental-contracts.destroy', $contract) }}"
-                                   data-delete-details="le contrat <strong>{{ $contract->contract_number }}</strong>">
-                                    <i class="ti ti-trash me-2"></i>Supprimer
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    @include('backoffice.rental-contracts.partials._actions', ['contract' => $contract])
                 </td>
+                @endcanany
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="text-center py-5">
+                @can('rental-contracts.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (auth()->user()->can('rental-contracts.general.delete') ? 7 : 6) }}" class="text-center py-5">
                     <div class="text-center">
-                        <i class="ti ti-file-text fs-48 text-gray-4 mb-3"></i>
+                        <i class="ti ti-file-text-off fs-48 text-gray-4 mb-3"></i>
                         <h5 class="mb-2">Aucun contrat trouvé</h5>
-                        <p class="text-muted mb-3">Commencez par créer un nouveau contrat</p>
-                        <a href="{{ route('backoffice.rental-contracts.create') }}" class="btn btn-primary">
-                            <i class="ti ti-plus me-2"></i>Nouveau contrat
-                        </a>
+                        @can('rental-contracts.general.create')
+                            <p class="text-muted mb-3">Commencez par créer un nouveau contrat</p>
+                            <a href="{{ route('backoffice.rental-contracts.create') }}" class="btn btn-primary">
+                                <i class="ti ti-plus me-2"></i>Nouveau contrat
+                            </a>
+                        @endcan
                     </div>
                 </td>
+                @canany(['rental-contracts.general.view', 'rental-contracts.general.edit', 'rental-contracts.general.delete'])
+                <td></td>
+                @endcanany
             </tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('rental-contracts.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
@@ -164,3 +175,4 @@
         }
     });
 </script>
+@endcan

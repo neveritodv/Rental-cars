@@ -82,9 +82,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
-                        <a href="{{ route('backoffice.finance.accounts.edit', $financialAccount) }}" class="btn btn-primary">
-                            <i class="ti ti-edit me-1"></i>Modifier
-                        </a>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @can('financial-accounts.general.edit')
+                            <a href="{{ route('backoffice.finance.accounts.edit', $financialAccount) }}" class="btn btn-primary">
+                                <i class="ti ti-edit me-1"></i>Modifier
+                            </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -209,9 +212,11 @@
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Dernières transactions</h5>
-                            <a href="{{ route('backoffice.finance.transactions.index', ['account_id' => $financialAccount->id]) }}" class="btn btn-sm btn-primary">
-                                Voir toutes
-                            </a>
+                            @can('financial-accounts.general.view')
+                                <a href="{{ route('backoffice.finance.transactions.index', ['account_id' => $financialAccount->id]) }}" class="btn btn-sm btn-primary">
+                                    Voir toutes
+                                </a>
+                            @endcan
                         </div>
                         <div class="card-body">
                             @if($financialAccount->transactions->count() > 0)

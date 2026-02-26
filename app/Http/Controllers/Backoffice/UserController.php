@@ -17,9 +17,15 @@ class UserController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Display a listing of users.
+     */
     public function index(): View
     {
-        $this->authorize('viewAny', User::class);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('users.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -63,12 +69,26 @@ class UserController extends Controller
             $agencies = Agency::orderBy('name')->get();
         }
 
-        return view('backoffice.users.index', compact('users', 'agencies'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('users.general.view'),
+            'can_create' => auth()->user()->can('users.general.create'),
+            'can_edit' => auth()->user()->can('users.general.edit'),
+            'can_delete' => auth()->user()->can('users.general.delete'),
+        ];
+
+        return view('backoffice.users.index', compact('users', 'agencies', 'permissions'));
     }
 
+    /**
+     * Show the form for creating a new user.
+     */
     public function create(): View
     {
-        $this->authorize('create', User::class);
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('users.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -81,9 +101,15 @@ class UserController extends Controller
         return view('Backoffice.users.create', compact('agencies'));
     }
 
+    /**
+     * Store a newly created user.
+     */
     public function store(UserStoreRequest $request): RedirectResponse
     {
-        $this->authorize('create', User::class);
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('users.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -104,7 +130,6 @@ class UserController extends Controller
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatar');
         }
         
-        // FIXED: Use correct module name 'user' and the actual user object
         $this->createNotification('store', 'user', $user);
 
         return redirect()
@@ -118,9 +143,15 @@ class UserController extends Controller
             ]);
     }
 
+    /**
+     * Display the specified user.
+     */
     public function show(User $user): View
     {
-        $this->authorize('view', $user);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('users.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -129,12 +160,24 @@ class UserController extends Controller
             abort(403);
         }
 
-        return view('Backoffice.users.show', compact('user'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('users.general.edit'),
+            'can_delete' => auth()->user()->can('users.general.delete'),
+        ];
+
+        return view('Backoffice.users.show', compact('user', 'permissions'));
     }
 
+    /**
+     * Show the form for editing the specified user.
+     */
     public function edit(User $user): View
     {
-        $this->authorize('update', $user);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('users.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -151,9 +194,15 @@ class UserController extends Controller
         return view('Backoffice.users.edit', compact('user', 'agencies'));
     }
 
+    /**
+     * Update the specified user.
+     */
     public function update(UserUpdateRequest $request, User $user): RedirectResponse
     {
-        $this->authorize('update', $user);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('users.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les utilisateurs.');
+        }
 
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
@@ -189,7 +238,6 @@ class UserController extends Controller
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatar');
         }
         
-        // ADDED: Create notification for update
         $this->createNotification('update', 'user', $user);
 
         return redirect()
@@ -203,10 +251,16 @@ class UserController extends Controller
             ]);
     }
 
+    /**
+     * Remove the specified user.
+     */
     public function destroy(User $user): RedirectResponse
     {
-        $this->authorize('delete', $user);
- $item->delete();
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('users.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les utilisateurs.');
+        }
+
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::guard('backoffice')->user();
 
@@ -216,11 +270,9 @@ class UserController extends Controller
 
         $name = $user->name;
         
-        // Store user data for notification before delete
         $userData = clone $user;
         $user->delete();
         
-        // ADDED: Create notification for delete
         $this->createNotification('destroy', 'user', $userData);
 
         return redirect()

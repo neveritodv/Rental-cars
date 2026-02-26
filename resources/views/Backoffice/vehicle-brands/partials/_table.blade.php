@@ -17,21 +17,51 @@
             display: inline-block;
             vertical-align: middle;
         }
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #6c757d;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            color: #0d6efd;
+        }
+        .form-check {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
     </style>
 </head>
 
-<table class="table datatable">
+<table class="table datatable align-middle">
     <thead class="thead-light">
         <tr>
-            <th class="no-sort">
+            {{-- Case à cocher - visible seulement si permission DELETE --}}
+            @can('vehicle-brands.general.delete')
+            <th class="no-sort" width="50">
                 <div class="form-check form-check-md">
                     <input class="form-check-input" type="checkbox" id="select-all">
                 </div>
             </th>
+            @endcan
             <th>NAME</th>
             <th>TOTAL CARS</th>
             <th>STATUS</th>
-            <th></th>
+            {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+            @canany(['vehicle-brands.general.view', 'vehicle-brands.general.edit', 'vehicle-brands.general.delete'])
+            <th width="80"></th>
+            @endcanany
         </tr>
     </thead>
 
@@ -40,15 +70,19 @@
             @php
                 $logo = $brand->logo_url ?: asset('admin_assets/img/brands/toyota.svg');
                 $carsCount = $brand->vehicles()->count();
+                
+                $canView = auth()->user()->can('vehicle-brands.general.view');
             @endphp
 
             <tr>
-                {{-- Checkbox --}}
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-brands.general.delete')
                 <td>
                     <div class="form-check form-check-md">
-                        <input class="form-check-input" type="checkbox">
+                        <input class="form-check-input brand-checkbox" type="checkbox" value="{{ $brand->id }}">
                     </div>
                 </td>
+                @endcan
 
                 {{-- Brand with Logo --}}
                 <td>
@@ -58,9 +92,14 @@
                         </a>
                         <div class="ms-2">
                             <h6 class="fw-medium mb-0">
-                                <a href="javascript:void(0);">
-                                    {{ $brand->name }}
-                                </a>
+                                {{-- Lien vers show - contrôlé par permission VIEW --}}
+                                @if($canView)
+                                    <a href="{{ route('backoffice.vehicle-brands.show', $brand) }}">
+                                        {{ $brand->name }}
+                                    </a>
+                                @else
+                                    <span>{{ $brand->name }}</span>
+                                @endif
                             </h6>
                         </div>
                     </div>
@@ -76,28 +115,47 @@
                     </span>
                 </td>
 
-                {{-- Actions (EDIT / DELETE) --}}
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-brands.general.view', 'vehicle-brands.general.edit', 'vehicle-brands.general.delete'])
                 <td>
                     @include('backoffice.vehicle-brands.partials._actions', [
                         'brand' => $brand,
                         'logo' => $logo,
                     ])
                 </td>
+                @endcanany
             </tr>
         @empty
             <tr>
-                <td colspan="5" class="text-center py-4">
+                @can('vehicle-brands.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (auth()->user()->can('vehicle-brands.general.delete') ? 4 : 3) }}" class="text-center py-4">
                     <div class="text-muted">
                         <i class="ti ti-car-off fs-4 mb-2"></i>
-                        <p class="mb-0">No brands found.</p>
-                        @if(request('search'))
-                            <!-- <a href="{{ route('backoffice.vehicle-brands.index') }}" class="btn btn-sm btn-primary mt-3">
-                                Effacer les filtres
-                            </a> -->
-                        @endif
+                        <p class="mb-0">Aucune marque trouvée.</p>
                     </div>
                 </td>
+                @canany(['vehicle-brands.general.view', 'vehicle-brands.general.edit', 'vehicle-brands.general.delete'])
+                <td></td>
+                @endcanany
             </tr>
         @endforelse
     </tbody>
 </table>
+
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-brands.general.delete')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.brand-checkbox').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                });
+            });
+        }
+    });
+</script>
+@endcan

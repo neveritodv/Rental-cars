@@ -1,22 +1,50 @@
 <head>
     <style>
         /* GLOBAL FIX for action dropdowns in tables */
-.table-responsive,
-.custom-datatable-filter,
-.dataTables_wrapper {
-    overflow: visible !important;
-}
-
+        .table-responsive,
+        .custom-datatable-filter,
+        .dataTables_wrapper {
+            overflow: visible !important;
+        }
+        
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #6c757d;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            color: #0d6efd;
+        }
+        .form-check {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
     </style>
 </head>
-<table class="table datatable">
+
+<table class="table datatable align-middle">
     <thead class="thead-light">
         <tr>
-            <th class="no-sort">
+            {{-- Case à cocher - visible seulement si permission DELETE --}}
+            @can('users.general.delete')
+            <th class="no-sort" width="50">
                 <div class="form-check form-check-md">
                     <input class="form-check-input" type="checkbox" id="select-all">
                 </div>
             </th>
+            @endcan
             <th>NOM</th>
             <th>EMAIL</th>
             <th>TÉLÉPHONE</th>
@@ -26,7 +54,10 @@
                     <th>AGENCE</th>
                 @endif
             @endauth
-            <th></th>
+            {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+            @canany(['users.general.view', 'users.general.edit', 'users.general.delete'])
+            <th width="80"></th>
+            @endcanany
         </tr>
     </thead>
 
@@ -36,14 +67,19 @@
                 $isActive = ($user->status ?? 'active') === 'active';
                 $isInactive = ($user->status ?? 'active') === 'inactive';
                 $isBlocked = ($user->status ?? 'active') === 'blocked';
+                
+                $canView = auth()->user()->can('users.general.view');
             @endphp
 
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('users.general.delete')
                 <td>
                     <div class="form-check form-check-md">
-                        <input class="form-check-input" type="checkbox">
+                        <input class="form-check-input user-checkbox" type="checkbox" value="{{ $user->id }}">
                     </div>
                 </td>
+                @endcan
 
                 <td>
                     <div class="d-flex align-items-center file-name-icon">
@@ -54,7 +90,12 @@
                         </a>
                         <div class="ms-2">
                             <h6 class="fw-medium mb-0">
-                                <a href="javascript:void(0);">{{ $user->name }}</a>
+                                {{-- Lien vers show - contrôlé par permission VIEW --}}
+                                @if($canView)
+                                    <a href="{{ route('backoffice.users.show', $user) }}">{{ $user->name }}</a>
+                                @else
+                                    <span>{{ $user->name }}</span>
+                                @endif
                             </h6>
                         </div>
                     </div>
@@ -88,16 +129,42 @@
                     @endif
                 @endauth
 
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['users.general.view', 'users.general.edit', 'users.general.delete'])
                 <td>
                     @include('backoffice.users.partials._actions', ['user' => $user])
                 </td>
+                @endcanany
             </tr>
         @empty
             <tr>
+                @can('users.general.delete')
                 <td></td>
-                <td colspan="3" class="text-center">Aucun utilisateur trouvé.</td>
+                @endcan
+                <td colspan="{{ (auth()->user()->can('users.general.delete') ? 6 : 5) }}" class="text-center py-4">
+                    <i class="ti ti-users-off fs-24 text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Aucun utilisateur trouvé.</p>
+                </td>
+                @canany(['users.general.view', 'users.general.edit', 'users.general.delete'])
                 <td></td>
+                @endcanany
             </tr>
         @endforelse
     </tbody>
 </table>
+
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('users.general.delete')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.user-checkbox').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                });
+            });
+        }
+    });
+</script>
+@endcan

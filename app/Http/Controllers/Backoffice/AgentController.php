@@ -10,14 +10,20 @@ use App\Models\Agency;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class AgentController extends Controller
 {
     /**
      * Display a listing of the agents.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('agents.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les agents.');
+        }
+
         $query = Agent::with(['agency', 'user']);
 
         // 🔎 SEARCH
@@ -53,7 +59,15 @@ class AgentController extends Controller
         $agencies = Agency::all();
         $users = User::all();
 
-        return view('backoffice.agents.index', compact('agents', 'agencies', 'users'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('agents.general.view'),
+            'can_create' => auth()->user()->can('agents.general.create'),
+            'can_edit' => auth()->user()->can('agents.general.edit'),
+            'can_delete' => auth()->user()->can('agents.general.delete'),
+        ];
+
+        return view('backoffice.agents.index', compact('agents', 'agencies', 'users', 'permissions'));
     }
 
     /**
@@ -61,6 +75,11 @@ class AgentController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('agents.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des agents.');
+        }
+
         $agencies = Agency::all();
         $users = User::all();
 
@@ -72,6 +91,11 @@ class AgentController extends Controller
      */
     public function store(AgentStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('agents.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des agents.');
+        }
+
         $validated = $request->validated();
 
         try {
@@ -90,7 +114,6 @@ class AgentController extends Controller
                     ->toMediaCollection('agent_avatar');
             }
             
-            // FIXED: Use correct module name 'agent' and the actual agent object
             $this->createNotification('store', 'agent', $agent);
 
             DB::commit();
@@ -100,7 +123,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Créé',
                     'message' => 'Agent créé avec succès.',
-                    'dot'     => '#198754', // green
+                    'dot'     => '#198754',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -113,7 +136,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la création: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -125,9 +148,20 @@ class AgentController extends Controller
      */
     public function show(Agent $agent)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('agents.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les agents.');
+        }
+
         $agent->load(['agency', 'user']);
 
-        return view('backoffice.agents.show', compact('agent'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('agents.general.edit'),
+            'can_delete' => auth()->user()->can('agents.general.delete'),
+        ];
+
+        return view('backoffice.agents.show', compact('agent', 'permissions'));
     }
 
     /**
@@ -135,6 +169,11 @@ class AgentController extends Controller
      */
     public function edit(Agent $agent)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('agents.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les agents.');
+        }
+
         $agent->load(['agency', 'user']);
         $agencies = Agency::all();
         $users = User::all();
@@ -147,6 +186,11 @@ class AgentController extends Controller
      */
     public function update(AgentUpdateRequest $request, Agent $agent)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('agents.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les agents.');
+        }
+
         $validated = $request->validated();
 
         try {
@@ -172,7 +216,6 @@ class AgentController extends Controller
                     ->toMediaCollection('agent_avatar');
             }
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'agent', $agent);
 
             DB::commit();
@@ -182,7 +225,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Mis à jour',
                     'message' => 'Agent mis à jour avec succès.',
-                    'dot'     => '#0d6efd', // blue
+                    'dot'     => '#0d6efd',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -195,7 +238,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -207,6 +250,11 @@ class AgentController extends Controller
      */
     public function destroy(Agent $agent)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('agents.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les agents.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -215,8 +263,7 @@ class AgentController extends Controller
             
             // Media Library will automatically delete associated media on model deletion
             $agent->delete();
-             $item->delete();
-            // ADDED: Create notification for delete
+            
             $this->createNotification('destroy', 'agent', $agentData);
 
             DB::commit();
@@ -226,7 +273,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Supprimé',
                     'message' => 'Agent supprimé avec succès.',
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);
@@ -238,7 +285,7 @@ class AgentController extends Controller
                 ->with('toast', [
                     'title'   => 'Erreur',
                     'message' => 'Erreur lors de la suppression: ' . $e->getMessage(),
-                    'dot'     => '#dc3545', // red
+                    'dot'     => '#dc3545',
                     'delay'   => 3500,
                     'time'    => 'now',
                 ]);

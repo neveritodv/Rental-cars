@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class FinancialAccountController extends Controller
 {
@@ -18,13 +19,18 @@ class FinancialAccountController extends Controller
     /**
      * Display a listing of financial accounts.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('financial-accounts.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les comptes financiers.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = FinancialAccount::where('agency_id', $agencyId);
 
-        // Search
+        // 🔎 Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -33,17 +39,17 @@ class FinancialAccountController extends Controller
             });
         }
 
-        // Filter by type
+        // 🏷️ Filter by type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Filter by default
+        // ⭐ Filter by default
         if ($request->filled('is_default')) {
             $query->where('is_default', $request->is_default);
         }
 
-        // Sort
+        // 🔤 Sort
         $sort = $request->get('sort', 'latest');
         if ($sort === 'oldest') {
             $query->orderBy('created_at', 'asc');
@@ -61,7 +67,15 @@ class FinancialAccountController extends Controller
 
         $accounts = $query->paginate(15)->withQueryString();
 
-        return view('backoffice.finance.accounts.index', compact('accounts'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('financial-accounts.general.view'),
+            'can_create' => auth()->user()->can('financial-accounts.general.create'),
+            'can_edit' => auth()->user()->can('financial-accounts.general.edit'),
+            'can_delete' => auth()->user()->can('financial-accounts.general.delete'),
+        ];
+
+        return view('backoffice.finance.accounts.index', compact('accounts', 'permissions'));
     }
 
     /**
@@ -69,6 +83,11 @@ class FinancialAccountController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('financial-accounts.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des comptes financiers.');
+        }
+
         return view('backoffice.finance.accounts.partials._modal_create');
     }
 
@@ -77,6 +96,11 @@ class FinancialAccountController extends Controller
      */
     public function store(FinancialAccountStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('financial-accounts.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des comptes financiers.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -91,9 +115,8 @@ class FinancialAccountController extends Controller
                     ->update(['is_default' => false]);
             }
 
-            $account = FinancialAccount::create($data); // Capture the created account
+            $account = FinancialAccount::create($data);
             
-            // FIXED: Use correct module name 'financial-account' and the actual account object
             $this->createNotification('store', 'financial-account', $account);
             
             DB::commit();
@@ -124,13 +147,28 @@ class FinancialAccountController extends Controller
      */
     public function show(FinancialAccount $financialAccount)
     {
-        //$this->authorize('view', $financialAccount);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('financial-accounts.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les comptes financiers.');
+        }
+
+        // Vérifier que le compte appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialAccount->agency_id !== $agencyId) {
+            abort(403, 'Ce compte n\'appartient pas à votre agence.');
+        }
 
         $financialAccount->load(['transactions' => function($q) {
             $q->latest()->limit(10);
         }]);
 
-        return view('backoffice.finance.accounts.show', compact('financialAccount'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('financial-accounts.general.edit'),
+            'can_delete' => auth()->user()->can('financial-accounts.general.delete'),
+        ];
+
+        return view('backoffice.finance.accounts.show', compact('financialAccount', 'permissions'));
     }
 
     /**
@@ -138,7 +176,16 @@ class FinancialAccountController extends Controller
      */
     public function edit(FinancialAccount $financialAccount)
     {
-        //$this->authorize('update', $financialAccount);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('financial-accounts.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les comptes financiers.');
+        }
+
+        // Vérifier que le compte appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialAccount->agency_id !== $agencyId) {
+            abort(403, 'Ce compte n\'appartient pas à votre agence.');
+        }
 
         return view('backoffice.finance.accounts.partials._modal_edit', compact('financialAccount'));
     }
@@ -148,13 +195,21 @@ class FinancialAccountController extends Controller
      */
     public function update(FinancialAccountUpdateRequest $request, FinancialAccount $financialAccount)
     {
-        //$this->authorize('update', $financialAccount);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('financial-accounts.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les comptes financiers.');
+        }
+
+        // Vérifier que le compte appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialAccount->agency_id !== $agencyId) {
+            abort(403, 'Ce compte n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
 
             $data = $request->validated();
-            $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
             // If this is set as default, remove default from other accounts
             if (!empty($data['is_default']) && !$financialAccount->is_default) {
@@ -169,7 +224,6 @@ class FinancialAccountController extends Controller
 
             $financialAccount->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'financial-account', $financialAccount);
 
             DB::commit();
@@ -200,7 +254,16 @@ class FinancialAccountController extends Controller
      */
     public function destroy(FinancialAccount $financialAccount)
     {
-        //$this->authorize('delete', $financialAccount);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('financial-accounts.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les comptes financiers.');
+        }
+
+        // Vérifier que le compte appartient à l'agence de l'utilisateur
+        $agencyId = Auth::guard('backoffice')->user()->agency_id;
+        if ($financialAccount->agency_id !== $agencyId) {
+            abort(403, 'Ce compte n\'appartient pas à votre agence.');
+        }
 
         try {
             DB::beginTransaction();
@@ -220,7 +283,6 @@ class FinancialAccountController extends Controller
             $accountData = clone $financialAccount;
             $financialAccount->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'financial-account', $accountData);
 
             DB::commit();

@@ -85,17 +85,23 @@
     <table class="table datatable align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicles.general.delete')
                 <th class="no-sort" width="50" style="text-align: center;">
                     <div class="form-check form-check-md">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 <th>VÉHICULE</th>
                 <th>IMMATRICULATION</th>
                 <th>PRIX/JOUR</th>
                 <th>KILOMÉTRAGE</th>
                 <th>STATUT</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicles.general.view', 'vehicles.general.edit', 'vehicles.general.delete'])
                 <th width="80" style="text-align: center;">ACTIONS</th>
+                @endcanany
             </tr>
         </thead>
 
@@ -142,14 +148,19 @@
                     // Price and mileage formatting
                     $daily = $vehicle->daily_rate !== null ? number_format((float) $vehicle->daily_rate, 2) : null;
                     $mileage = $vehicle->current_mileage !== null ? number_format((int) $vehicle->current_mileage) : null;
+                    
+                    $canView = auth()->user()->can('vehicles.general.view');
                 @endphp
 
                 <tr>
+                    {{-- Case à cocher - visible seulement si permission DELETE --}}
+                    @can('vehicles.general.delete')
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="form-check form-check-md">
-                            <input class="form-check-input row-check" type="checkbox" value="{{ $vehicle->id }}">
+                            <input class="form-check-input row-check vehicle-checkbox" type="checkbox" value="{{ $vehicle->id }}">
                         </div>
                     </td>
+                    @endcan
 
                     <td style="vertical-align: middle;">
                         <div class="d-flex align-items-center">
@@ -159,9 +170,14 @@
                                  onerror="this.onerror=null; this.src='/assets/place-holder.webp';">
                             <div>
                                 <h6 class="mb-1">
-                                    <a href="{{ route('backoffice.vehicles.show', $vehicle) }}" class="fs-14 fw-semibold">
-                                        {{ $carTitle }}
-                                    </a>
+                                    {{-- Lien vers show - contrôlé par permission VIEW --}}
+                                    @if($canView)
+                                        <a href="{{ route('backoffice.vehicles.show', $vehicle) }}" class="fs-14 fw-semibold">
+                                            {{ $carTitle }}
+                                        </a>
+                                    @else
+                                        <span class="fs-14 fw-semibold">{{ $carTitle }}</span>
+                                    @endif
                                 </h6>
                                 <p class="mb-0 text-muted small">
                                     {{ $vehicle->color ?? 'Couleur N/C' }}
@@ -206,99 +222,58 @@
                         </span>
                     </td>
 
+                    {{-- Actions - visible seulement si au moins une permission d'action --}}
+                    @canany(['vehicles.general.view', 'vehicles.general.edit', 'vehicles.general.delete'])
                     <td style="text-align: center; vertical-align: middle;">
-                        <div class="dropdown d-inline-block">
-                            <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="ti ti-dots-vertical"></i>
-                            </button>
-
-                            <ul class="dropdown-menu dropdown-menu-end p-2">
-                                <li>
-                                    <a class="dropdown-item rounded-1"
-                                       href="{{ route('backoffice.vehicles.show', $vehicle) }}">
-                                        <i class="ti ti-eye me-1"></i> Voir détails
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item rounded-1"
-                                       href="{{ route('backoffice.vehicles.edit', $vehicle) }}">
-                                        <i class="ti ti-edit me-1"></i> Modifier
-                                    </a>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a class="dropdown-item text-danger rounded-1" 
-                                       href="javascript:void(0);"
-                                       data-bs-toggle="modal" 
-                                       data-bs-target="#delete_vehicle"
-                                       data-delete-action="{{ route('backoffice.vehicles.destroy', $vehicle) }}"
-                                       data-delete-details="Véhicule <strong>{{ $carTitle }}</strong> ({{ $vehicle->registration_number }})">
-                                        <i class="ti ti-trash me-1"></i> Supprimer
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+                        @include('backoffice.vehicles.partials._actions', [
+                            'vehicle' => $vehicle,
+                            'carTitle' => $carTitle
+                        ])
                     </td>
+                    @endcanany
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center py-5">
+                    @can('vehicles.general.delete')
+                    <td></td>
+                    @endcan
+                    <td colspan="{{ (auth()->user()->can('vehicles.general.delete') ? 6 : 5) }}" class="text-center py-5">
                         <div class="empty-state">
-                            <i class="ti ti-car"></i>
+                            <i class="ti ti-car-off"></i>
                             <h5 class="mb-2">Aucun véhicule trouvé</h5>
-                            <!-- <p class="text-muted mb-3">Commencez par ajouter un véhicule</p> -->
-                            <!-- <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary">
-                                <i class="ti ti-plus me-2"></i>Ajouter un véhicule
-                            </a> -->
+                            @can('vehicles.general.create')
+                                <p class="text-muted mb-3">Commencez par ajouter un véhicule</p>
+                                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary">
+                                    <i class="ti ti-plus me-2"></i>Ajouter un véhicule
+                                </a>
+                            @endcan
                         </div>
                     </td>
+                    @canany(['vehicles.general.view', 'vehicles.general.edit', 'vehicles.general.delete'])
+                    <td></td>
+                    @endcanany
                 </tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
-<!-- Delete Modal -->
-<div class="modal fade" id="delete_vehicle" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-body text-center">
-                <span class="avatar avatar-lg bg-transparent-danger rounded-circle text-danger mb-3">
-                    <i class="ti ti-trash-x fs-26"></i>
-                </span>
-                <h4 class="mb-1">Supprimer le véhicule</h4>
-                <p class="mb-3" id="deleteVehicleText">Êtes-vous sûr de vouloir supprimer ce véhicule ?</p>
-                
-                <form method="POST" action="" id="deleteVehicleForm">
-                    @csrf
-                    @method('DELETE')
-                    
-                    <div class="d-flex justify-content-center">
-                        <button type="button" class="btn btn-light me-3" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-danger">Oui, supprimer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicles.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Select all checkbox
         const selectAll = document.getElementById('select-all');
         if (selectAll) {
             selectAll.addEventListener('change', function() {
-                document.querySelectorAll('.row-check').forEach(cb => {
+                document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
                     cb.checked = selectAll.checked;
                 });
             });
         }
 
         // Individual checkbox - update select all state
-        const rowCheckboxes = document.querySelectorAll('.row-check');
+        const rowCheckboxes = document.querySelectorAll('.vehicle-checkbox');
         if (rowCheckboxes.length > 0 && selectAll) {
             rowCheckboxes.forEach(cb => {
                 cb.addEventListener('change', function() {
@@ -309,29 +284,6 @@
                 });
             });
         }
-        
-        // Delete modal handler
-        const deleteModal = document.getElementById('delete_vehicle');
-        if (deleteModal) {
-            deleteModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                
-                if (button) {
-                    const action = button.getAttribute('data-delete-action');
-                    const details = button.getAttribute('data-delete-details') || 'ce véhicule';
-                    
-                    const form = document.getElementById('deleteVehicleForm');
-                    const text = document.getElementById('deleteVehicleText');
-                    
-                    if (action && form) {
-                        form.action = action;
-                    }
-                    
-                    if (text && details) {
-                        text.innerHTML = 'Êtes-vous sûr de vouloir supprimer ' + details + ' ?';
-                    }
-                }
-            });
-        }
     });
 </script>
+@endcan

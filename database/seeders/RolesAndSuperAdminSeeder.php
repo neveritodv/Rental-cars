@@ -17,31 +17,119 @@ class RolesAndSuperAdminSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
-        | Define Module Modules & Resources with Actions
+        | Define ALL Modules from Sidebar with Resources and Actions
         |--------------------------------------------------------------------------
         | Format: "module.resource.action"
-        | Modules: dashboard, agencies, users, vehicles, bookings, reports
-        | Resources: general (for now, can be extended)
         | Actions: view, create, edit, delete
         */
         $modulesConfig = [
+            // Main
             'dashboard' => [
-                'general' => ['view'], // Dashboard view only
+                'general' => ['view'],
             ],
+            
+            // AGENCIES SECTION
             'agencies' => [
                 'general' => ['view', 'create', 'edit', 'delete'],
             ],
+            'agency-subscriptions' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // ACCÈS SECTION
+            'roles-permissions' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // EMPLOYEE SECTION
+            'agents' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // CLIENTS SECTION
+            'clients' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // MANAGEMENT SECTION
             'users' => [
                 'general' => ['view', 'create', 'edit', 'delete'],
             ],
+            
+            // VÉHICULE SUIVI SECTION
+            'vehicle-vignettes' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-insurances' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-oil-changes' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-technical-checks' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-controls' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-control-items' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // CONTRATS SECTION
+            'rental-contracts' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'contract-clients' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // VÉHICULES SECTION
             'vehicles' => [
                 'general' => ['view', 'create', 'edit', 'delete'],
             ],
+            'vehicle-credits' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-brands' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'vehicle-models' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // RÉSERVATIONS SECTION
             'bookings' => [
                 'general' => ['view', 'create', 'edit', 'delete'],
             ],
-            'reports' => [
-                'general' => ['view'], // Reports view only
+            
+            // FINANCE SECTION
+            'financial-accounts' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'transaction-categories' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'financial-transactions' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // FACTURATION SECTION
+            'invoices' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            'invoice-items' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // PAIEMENTS SECTION
+            'payments' => [
+                'general' => ['view', 'create', 'edit', 'delete'],
+            ],
+            
+            // TRASH SECTION
+            'trash' => [
+                'general' => ['view', 'restore', 'delete'],
             ],
         ];
 
@@ -68,14 +156,14 @@ class RolesAndSuperAdminSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
-        | Create Roles
+        | Create Roles (THE 4 ROLES YOU NEED)
         |--------------------------------------------------------------------------
         */
         $roles = [
-            'super-admin',
-            'agency-admin',
-            'agency-manager',
-            'agency-staff',
+            'super-admin',      // Full access to everything
+            'agency-admin',      // Full access within their agency
+            'agency-manager',    // Can manage operations (no delete)
+            'agency-staff',      // View only
         ];
 
         foreach ($roles as $role) {
@@ -91,56 +179,87 @@ class RolesAndSuperAdminSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
 
-        // Super-Admin: All permissions
+        // 1. SUPER-ADMIN: ALL permissions (everything)
         Role::findByName('super-admin', 'backoffice')
             ->syncPermissions($allPermissions);
 
-        // Agency-Admin: All permissions except agencies management
+        // 2. AGENCY-ADMIN: All permissions EXCEPT global modules
         $agencyAdminPerms = array_filter($allPermissions, function ($perm) {
-            return !str_starts_with($perm, 'agencies.');
+            // Exclude global modules that only super-admin should manage
+            return !str_starts_with($perm, 'agencies.') &&
+                   !str_starts_with($perm, 'agency-subscriptions.') &&
+                   !str_starts_with($perm, 'users.') &&
+                   !str_starts_with($perm, 'roles-permissions.') &&
+                   !str_starts_with($perm, 'trash.'); // Trash management for super-admin only
         });
         Role::findByName('agency-admin', 'backoffice')
             ->syncPermissions(array_values($agencyAdminPerms));
 
-        // Agency-Manager: View + Create/Edit/Delete bookings & vehicles, view dashboard
-        $agencyManagerPerms = [
-            'dashboard.general.view',
-            'vehicles.general.view',
-            'vehicles.general.create',
-            'vehicles.general.edit',
-            'vehicles.general.delete',
-            'bookings.general.view',
-            'bookings.general.create',
-            'bookings.general.edit',
-            'bookings.general.delete',
-            'reports.general.view',
-        ];
+        // 3. AGENCY-MANAGER: View, Create, Edit (NO DELETE)
+        $agencyManagerPerms = array_filter($allPermissions, function ($perm) {
+            // Exclude global modules
+            if (str_starts_with($perm, 'agencies.') ||
+                str_starts_with($perm, 'agency-subscriptions.') ||
+                str_starts_with($perm, 'users.') ||
+                str_starts_with($perm, 'roles-permissions.') ||
+                str_starts_with($perm, 'trash.')) {
+                return false;
+            }
+            
+            // Include view, create, edit but EXCLUDE delete
+            return str_contains($perm, '.view') || 
+                   str_contains($perm, '.create') || 
+                   str_contains($perm, '.edit');
+        });
         Role::findByName('agency-manager', 'backoffice')
-            ->syncPermissions($agencyManagerPerms);
+            ->syncPermissions(array_values($agencyManagerPerms));
 
-        // Agency-Staff: Dashboard & Reports view only
-        $agencyStaffPerms = [
-            'dashboard.general.view',
-            'reports.general.view',
-        ];
+        // 4. AGENCY-STAFF: View ONLY
+        $agencyStaffPerms = array_filter($allPermissions, function ($perm) {
+            // Exclude global modules
+            if (str_starts_with($perm, 'agencies.') ||
+                str_starts_with($perm, 'agency-subscriptions.') ||
+                str_starts_with($perm, 'users.') ||
+                str_starts_with($perm, 'roles-permissions.') ||
+                str_starts_with($perm, 'trash.')) {
+                return false;
+            }
+            
+            // Include ONLY view permissions
+            return str_contains($perm, '.view');
+        });
         Role::findByName('agency-staff', 'backoffice')
-            ->syncPermissions($agencyStaffPerms);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Assign Roles to Users
-        |--------------------------------------------------------------------------
-        */
-        $superAdmin = User::where('email', 'admin@agency1.com')->first();
-        if ($superAdmin) {
-            $superAdmin->syncRoles(['super-admin']);
-        }
+            ->syncPermissions(array_values($agencyStaffPerms));
 
         // Clear cache after seeding
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Output Information
+        |--------------------------------------------------------------------------
+        */
         $this->command?->info('✅ Roles & permissions seeded successfully');
-        $this->command?->info("✅ Created " . count($allPermissions) . " permissions with CRUD strategy");
-        $this->command?->info('✅ Super Admin assigned to admin@agency1.com');
+        $this->command?->info("✅ Created " . count($allPermissions) . " permissions");
+        $this->command?->info('');
+        $this->command?->info('📋 Modules with permissions:');
+        $modules = array_keys($modulesConfig);
+        foreach ($modules as $module) {
+            $this->command?->info("  • {$module}");
+        }
+        
+        $this->command?->info('');
+        $this->command?->info('📋 Roles created:');
+        $this->command?->info('  • super-admin - FULL ACCESS to everything');
+        $this->command?->info('  • agency-admin - Full access within agency');
+        $this->command?->info('  • agency-manager - View/Create/Edit (no delete)');
+        $this->command?->info('  • agency-staff - View only');
+        
+        $this->command?->info('');
+        $this->command?->info('📋 Permission counts per role:');
+        $this->command?->info('  • super-admin: ' . count($allPermissions) . ' permissions');
+        $this->command?->info('  • agency-admin: ' . count($agencyAdminPerms) . ' permissions');
+        $this->command?->info('  • agency-manager: ' . count($agencyManagerPerms) . ' permissions');
+        $this->command?->info('  • agency-staff: ' . count($agencyStaffPerms) . ' permissions');
     }
 }

@@ -79,11 +79,14 @@
     <table class="table datatable align-middle">
         <thead class="thead-light">
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-oil-changes.general.delete')
                 <th width="50" class="text-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="select-all">
                     </div>
                 </th>
+                @endcan
                 
                 {{-- VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
@@ -97,24 +100,35 @@
                 <th>Reste</th>
                 <th>Montant</th>
                 <th>Statut</th>
+                {{-- Colonne Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-oil-changes.general.view', 'vehicle-oil-changes.general.edit', 'vehicle-oil-changes.general.delete'])
                 <th width="80">Actions</th>
+                @endcanany
             </tr>
         </thead>
         <tbody>
             @forelse($oilChanges as $oilChange)
             <tr>
+                {{-- Case à cocher - visible seulement si permission DELETE --}}
+                @can('vehicle-oil-changes.general.delete')
                 <td class="text-center">
                     <div class="form-check">
                         <input class="form-check-input oil-change-checkbox" type="checkbox" value="{{ $oilChange->id }}">
                     </div>
                 </td>
+                @endcan
                 
                 {{-- SHOW VEHICLE COLUMN FOR GLOBAL VIEW --}}
                 @if(isset($isGlobalView) && $isGlobalView)
                     <td>
-                        <a href="{{ route('backoffice.vehicles.show', $oilChange->vehicle_id) }}" class="fw-medium">
-                            {{ $oilChange->vehicle->registration_number ?? 'N/C' }}
-                        </a>
+                        {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                        @can('vehicles.general.view')
+                            <a href="{{ route('backoffice.vehicles.show', $oilChange->vehicle_id) }}" class="fw-medium">
+                                {{ $oilChange->vehicle->registration_number ?? 'N/C' }}
+                            </a>
+                        @else
+                            <span class="fw-medium">{{ $oilChange->vehicle->registration_number ?? 'N/C' }}</span>
+                        @endcan
                         @if($oilChange->vehicle)
                             <br><small class="text-muted">{{ $oilChange->vehicle->registration_city ?? '' }}</small>
                         @endif
@@ -132,42 +146,58 @@
                         {{ $oilChange->status_text }}
                     </span>
                 </td>
+                
+                {{-- Actions - visible seulement si au moins une permission d'action --}}
+                @canany(['vehicle-oil-changes.general.view', 'vehicle-oil-changes.general.edit', 'vehicle-oil-changes.general.delete'])
                 <td class="text-center">
                     @include('Backoffice.oil-changes.partials._actions', ['oilChange' => $oilChange])
                 </td>
+                @endcanany
             </tr>
-@empty
-<tr>
-    <td colspan="{{ (isset($isGlobalView) && $isGlobalView) ? '8' : '7' }}" class="text-center py-5">
-        <div class="text-center">
-            <i class="ti ti-droplet-off fs-48 text-gray-4 mb-3"></i>
-            <h5 class="mb-2">Aucune vidange trouvée</h5>
-            @if(isset($isGlobalView) && $isGlobalView)
-                <p class="text-muted mb-3">Commencez par ajouter une vidange</p>
-                <a href="{{ route('backoffice.vehicle-documents.oil-changes.create') }}" class="btn btn-primary mt-3">
-                    <i class="ti ti-plus me-2"></i>Ajouter une vidange
-                </a>
-            @else
-                @if(isset($vehicle) && $vehicle)
-                    <p class="text-muted mb-3">Commencez par ajouter une vidange</p>
-                    <a href="{{ route('backoffice.vehicles.oil-changes.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Ajouter une vidange
-                    </a>
-                @else
-                    <p class="text-muted mb-3">Aucun véhicule trouvé</p>
-                    <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
-                        <i class="ti ti-plus me-2"></i>Créer un véhicule
-                    </a>
-                @endif
-            @endif
-        </div>
-    </td>
-</tr>
-@endempty
+            @empty
+            <tr>
+                @can('vehicle-oil-changes.general.delete')
+                <td></td>
+                @endcan
+                <td colspan="{{ (isset($isGlobalView) && $isGlobalView ? 8 : 7) + (auth()->user()->can('vehicle-oil-changes.general.delete') ? 1 : 0) }}" class="text-center py-5">
+                    <div class="text-center">
+                        <i class="ti ti-droplet-off fs-48 text-gray-4 mb-3"></i>
+                        <h5 class="mb-2">Aucune vidange trouvée</h5>
+                        @if(isset($isGlobalView) && $isGlobalView)
+                            @can('vehicle-oil-changes.general.create')
+                                <p class="text-muted mb-3">Commencez par ajouter une vidange</p>
+                                <a href="{{ route('backoffice.vehicle-documents.oil-changes.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une vidange
+                                </a>
+                            @endcan
+                        @else
+                            @if(isset($vehicle) && $vehicle)
+                                @can('vehicle-oil-changes.general.create')
+                                    <p class="text-muted mb-3">Commencez par ajouter une vidange</p>
+                                    <a href="{{ route('backoffice.vehicles.oil-changes.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary mt-3">
+                                        <i class="ti ti-plus me-2"></i>Ajouter une vidange
+                                    </a>
+                                @endcan
+                            @else
+                                <p class="text-muted mb-3">Aucun véhicule trouvé</p>
+                                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary mt-3">
+                                    <i class="ti ti-plus me-2"></i>Créer un véhicule
+                                </a>
+                            @endif
+                        @endif
+                    </div>
+                </td>
+                @canany(['vehicle-oil-changes.general.view', 'vehicle-oil-changes.general.edit', 'vehicle-oil-changes.general.delete'])
+                <td></td>
+                @endcanany
+            </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
 
+{{-- Script pour "Select All" - seulement si permission DELETE --}}
+@can('vehicle-oil-changes.general.delete')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
@@ -180,3 +210,4 @@
         }
     });
 </script>
+@endcan

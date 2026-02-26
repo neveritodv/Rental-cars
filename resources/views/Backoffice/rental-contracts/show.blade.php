@@ -156,18 +156,29 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div class="d-flex gap-2">
+                        {{-- Bouton PDF - contrôlé par permission VIEW --}}
+                        @can('rental-contracts.general.view')
                         <a href="{{ route('backoffice.contracts.pdf.single', $rentalContract->id) }}" class="btn btn-danger" target="_blank">
                             <i class="ti ti-file-text me-1"></i>Télécharger PDF
                         </a>
-                        @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
-                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}?text={{ urlencode('Bonjour, voici votre contrat #' . $rentalContract->contract_number . ' : ' . route('backoffice.contracts.pdf.single', $rentalContract->id, true)) }}" 
-                           class="btn btn-success" target="_blank">
-                            <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
-                        </a>
-                        @endif
+                        @endcan
+                        
+                        {{-- Bouton WhatsApp - contrôlé par permission VIEW --}}
+                        @can('rental-contracts.general.view')
+                            @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
+                            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}?text={{ urlencode('Bonjour, voici votre contrat #' . $rentalContract->contract_number . ' : ' . route('backoffice.contracts.pdf.single', $rentalContract->id, true)) }}" 
+                               class="btn btn-success" target="_blank">
+                                <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                            </a>
+                            @endif
+                        @endcan
+                        
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.rental-contracts.edit', $rentalContract) }}" class="btn btn-primary">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -246,33 +257,42 @@
                                         <i class="ti ti-user me-2"></i>
                                         Client principal
                                     </h5>
-                                    @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
-                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}" 
-                                       class="btn btn-sm btn-success" target="_blank">
-                                        <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
-                                    </a>
-                                    @endif
+                                    @can('rental-contracts.general.view')
+                                        @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
+                                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}" 
+                                           class="btn btn-sm btn-success" target="_blank">
+                                            <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                                        </a>
+                                        @endif
+                                    @endcan
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Nom</div>
                                             <div class="info-value">
-                                                <a href="{{ route('backoffice.clients.show', $rentalContract->primary_client_id) }}">
-                                                    {{ $rentalContract->primaryClient->first_name ?? '' }} {{ $rentalContract->primaryClient->last_name ?? '' }}
-                                                </a>
+                                                {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                                @can('clients.general.view')
+                                                    <a href="{{ route('backoffice.clients.show', $rentalContract->primary_client_id) }}">
+                                                        {{ $rentalContract->primaryClient->first_name ?? '' }} {{ $rentalContract->primaryClient->last_name ?? '' }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $rentalContract->primaryClient->first_name ?? '' }} {{ $rentalContract->primaryClient->last_name ?? '' }}</span>
+                                                @endcan
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="info-label">Téléphone</div>
                                             <div class="info-value">
                                                 {{ $rentalContract->primaryClient->phone ?? 'N/A' }}
-                                                @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
-                                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}" 
-                                                   class="ms-2 text-success" target="_blank">
-                                                    <i class="ti ti-brand-whatsapp"></i>
-                                                </a>
-                                                @endif
+                                                @can('rental-contracts.general.view')
+                                                    @if($rentalContract->primaryClient && $rentalContract->primaryClient->phone)
+                                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->primaryClient->phone) }}" 
+                                                       class="ms-2 text-success" target="_blank">
+                                                        <i class="ti ti-brand-whatsapp"></i>
+                                                    </a>
+                                                    @endif
+                                                @endcan
                                             </div>
                                         </div>
                                         @if($rentalContract->primaryClient && $rentalContract->primaryClient->email)
@@ -292,33 +312,42 @@
                                         <i class="ti ti-users me-2"></i>
                                         Client secondaire
                                     </h5>
-                                    @if($rentalContract->secondaryClient->phone)
-                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->secondaryClient->phone) }}" 
-                                       class="btn btn-sm btn-success" target="_blank">
-                                        <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
-                                    </a>
-                                    @endif
+                                    @can('rental-contracts.general.view')
+                                        @if($rentalContract->secondaryClient->phone)
+                                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->secondaryClient->phone) }}" 
+                                           class="btn btn-sm btn-success" target="_blank">
+                                            <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                                        </a>
+                                        @endif
+                                    @endcan
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Nom</div>
                                             <div class="info-value">
-                                                <a href="{{ route('backoffice.clients.show', $rentalContract->secondary_client_id) }}">
-                                                    {{ $rentalContract->secondaryClient->first_name ?? '' }} {{ $rentalContract->secondaryClient->last_name ?? '' }}
-                                                </a>
+                                                {{-- Lien vers client - contrôlé par permission VIEW sur clients --}}
+                                                @can('clients.general.view')
+                                                    <a href="{{ route('backoffice.clients.show', $rentalContract->secondary_client_id) }}">
+                                                        {{ $rentalContract->secondaryClient->first_name ?? '' }} {{ $rentalContract->secondaryClient->last_name ?? '' }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $rentalContract->secondaryClient->first_name ?? '' }} {{ $rentalContract->secondaryClient->last_name ?? '' }}</span>
+                                                @endcan
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="info-label">Téléphone</div>
                                             <div class="info-value">
                                                 {{ $rentalContract->secondaryClient->phone ?? 'N/A' }}
-                                                @if($rentalContract->secondaryClient && $rentalContract->secondaryClient->phone)
-                                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->secondaryClient->phone) }}" 
-                                                   class="ms-2 text-success" target="_blank">
-                                                    <i class="ti ti-brand-whatsapp"></i>
-                                                </a>
-                                                @endif
+                                                @can('rental-contracts.general.view')
+                                                    @if($rentalContract->secondaryClient && $rentalContract->secondaryClient->phone)
+                                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rentalContract->secondaryClient->phone) }}" 
+                                                       class="ms-2 text-success" target="_blank">
+                                                        <i class="ti ti-brand-whatsapp"></i>
+                                                    </a>
+                                                    @endif
+                                                @endcan
                                             </div>
                                         </div>
                                     </div>
@@ -341,9 +370,14 @@
                                         <div class="col-md-6">
                                             <div class="info-label">Véhicule</div>
                                             <div class="info-value">
-                                                <a href="{{ route('backoffice.vehicles.show', $rentalContract->vehicle_id) }}">
-                                                    {{ $rentalContract->vehicle->registration_number ?? 'N/A' }}
-                                                </a>
+                                                {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                                                @can('vehicles.general.view')
+                                                    <a href="{{ route('backoffice.vehicles.show', $rentalContract->vehicle_id) }}">
+                                                        {{ $rentalContract->vehicle->registration_number ?? 'N/A' }}
+                                                    </a>
+                                                @else
+                                                    <span>{{ $rentalContract->vehicle->registration_number ?? 'N/A' }}</span>
+                                                @endcan
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -559,9 +593,11 @@
                                     <i class="ti ti-photo-off fs-48 text-muted mb-3"></i>
                                     <h5 class="text-muted">Aucune photo disponible</h5>
                                     <p class="text-muted">Ce contrat n'a pas de photos du véhicule.</p>
+                                    @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                     <a href="{{ route('backoffice.rental-contracts.edit', $rentalContract) }}" class="btn btn-primary mt-2">
                                         <i class="ti ti-upload me-1"></i>Ajouter des photos
                                     </a>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -576,6 +612,7 @@
                                 <i class="ti ti-file-text me-2"></i>
                                 Aperçu PDF
                             </h5>
+                            @can('rental-contracts.general.view')
                             <div class="d-flex gap-2">
                                 <a href="{{ route('backoffice.contracts.pdf.single', $rentalContract->id) }}" class="btn btn-sm btn-danger" target="_blank">
                                     <i class="ti ti-download me-1"></i>Télécharger
@@ -587,6 +624,7 @@
                                 </a>
                                 @endif
                             </div>
+                            @endcan
                         </div>
                         <div class="card-body">
                             <div class="pdf-preview-container">

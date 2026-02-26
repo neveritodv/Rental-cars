@@ -128,17 +128,16 @@
                     </div>
 
                     <!-- FILTER BUTTON -->
-<!-- FILTER BUTTON - NO BADGE -->
-<div>
-    <a href="#filtercollapse"
-       class="filtercollapse coloumn d-inline-flex align-items-center"
-       data-bs-toggle="collapse">
-        <i class="ti ti-filter me-1"></i> Filter
-    </a>
-</div>
+                    <div>
+                        <a href="#filtercollapse"
+                           class="filtercollapse coloumn d-inline-flex align-items-center"
+                           data-bs-toggle="collapse">
+                            <i class="ti ti-filter me-1"></i> Filter
+                        </a>
+                    </div>
                 </div>
 
-                <!-- SEARCH -->
+                <!-- SEARCH & ACTIONS -->
                 <div class="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                     <div class="top-search me-2">
                         <div class="top-search-group position-relative">
@@ -161,10 +160,22 @@
                             @endif
                         </div>
                     </div>
+
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('vehicles.general.create')
+                    <div class="mb-0">
+                        <a href="javascript:void(0);"
+                           class="btn btn-primary d-flex align-items-center"
+                           data-bs-toggle="modal"
+                           data-bs-target="#add_vehicle">
+                            <i class="ti ti-plus me-2"></i>Ajouter un véhicule
+                        </a>
+                    </div>
+                    @endcan
                 </div>
             </div>
 
-            <!-- FILTERS ROW - HIDDEN BY DEFAULT - REMOVED CONDITIONAL SHOW -->
+            <!-- FILTERS ROW - HIDDEN BY DEFAULT -->
             <div class="filter-row collapse" id="filtercollapse">
                 
                 <!-- Select Cars -->
@@ -218,7 +229,7 @@
         <!-- /FILTER FORM -->
 
         {{-- Data table --}}
-        @include('backoffice.vehicles.partials._table', ['vehicles' => $vehicles])
+        @include('backoffice.vehicles.partials._table', ['vehicles' => $vehicles, 'permissions' => $permissions])
 
         <!-- Pagination with counter -->
         @if(isset($vehicles) && $vehicles->total() > 0)
@@ -239,7 +250,7 @@
 </div>
 
 <!-- Delete Vehicle Modal -->
-<div class="modal fade" id="deleteVehicleModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="delete_vehicle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="POST" id="deleteVehicleForm">
@@ -276,6 +287,30 @@ document.addEventListener('DOMContentLoaded', function() {
             timer = setTimeout(() => form.submit(), 400);
         });
     }
+
+    // Delete modal handler
+    const deleteModal = document.getElementById('delete_vehicle');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            if (button) {
+                const action = button.getAttribute('data-delete-action');
+                const details = button.getAttribute('data-delete-details') || 'ce véhicule';
+                
+                const form = document.getElementById('deleteVehicleForm');
+                const text = document.getElementById('deleteVehicleText');
+                
+                if (action && form) {
+                    form.action = action;
+                }
+                
+                if (text && details) {
+                    text.innerHTML = 'Êtes-vous sûr de vouloir supprimer ' + details + ' ?';
+                }
+            }
+        });
+    }
 });
 
 function clearSearch() {
@@ -284,15 +319,6 @@ function clearSearch() {
         searchInput.value = '';
         document.getElementById('filterForm').submit();
     }
-}
-
-function showDeleteModal(vehicleId, vehicleName, deleteUrl) {
-    const deleteText = document.getElementById('deleteVehicleText');
-    deleteText.textContent = `Êtes-vous sûr de vouloir supprimer le véhicule « ${vehicleName} » ?`;
-    const deleteForm = document.getElementById('deleteVehicleForm');
-    deleteForm.action = deleteUrl;
-    const modal = new bootstrap.Modal(document.getElementById('deleteVehicleModal'));
-    modal.show();
 }
 </script>
 @endsection

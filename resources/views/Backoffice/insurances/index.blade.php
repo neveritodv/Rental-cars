@@ -32,18 +32,6 @@
 
         @include('Backoffice.insurances.partials._breadcrumbs', ['vehicle' => $vehicle ?? null])
 
-        <!-- @if(!isset($vehicle) || !$vehicle)
-            <div class="d-flex align-items-center justify-content-between p-4 mb-4 bg-light rounded border">
-                <div class="d-flex align-items-center">
-                    <i class="ti ti-info-circle fs-5 text-primary me-2"></i>
-                    <span>Aucun véhicule trouvé. Veuillez créer un véhicule pour ajouter des assurances.</span>
-                </div>
-                <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary">
-                    <i class="ti ti-plus me-1"></i>Créer un véhicule
-                </a>
-            </div>
-        @endif -->
-
         <form method="GET" id="filterForm" action="{{ request()->url() }}">
             <div class="d-flex align-items-center justify-content-between flex-wrap row-gap-3 mb-3">
                 <div class="d-flex align-items-center flex-wrap row-gap-3">
@@ -92,21 +80,25 @@
                             @endif
                         </div>
                     </div>
-<div class="mb-0">
-    @if(isset($isGlobalView) && $isGlobalView)
-        <a href="{{ route('backoffice.vehicle-documents.insurances.create') }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter une assurance
-        </a>
-    @else
-        <a href="{{ route('backoffice.vehicles.insurances.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
-            <i class="ti ti-plus me-2"></i>Ajouter une assurance
-        </a>
-    @endif
-</div>
+                    
+                    {{-- Bouton Ajouter - contrôlé par permission CREATE --}}
+                    @can('vehicle-insurances.general.create')
+                        <div class="mb-0">
+                            @if(isset($isGlobalView) && $isGlobalView)
+                                <a href="{{ route('backoffice.vehicle-documents.insurances.create') }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une assurance
+                                </a>
+                            @else
+                                <a href="{{ route('backoffice.vehicles.insurances.create', ['vehicle' => $vehicle->id]) }}" class="btn btn-primary d-flex align-items-center">
+                                    <i class="ti ti-plus me-2"></i>Ajouter une assurance
+                                </a>
+                            @endif
+                        </div>
+                    @endcan
                 </div>
             </div>
 
-            <div class="collapse" id="filtercollapse">
+            <div class="collapse @if(request()->has('company') || request()->has('date_from') || request()->has('date_to') || request()->has('next_date_from') || request()->has('next_date_to') || request()->has('amount_min') || request()->has('amount_max')) show @endif" id="filtercollapse">
                 <div class="filterbox p-3 mb-3 bg-light-100 rounded">
                     <div class="row align-items-end">
                         <div class="col-md-3">
@@ -153,7 +145,12 @@
         </form>
 
         <div class="custom-datatable-filter table-responsive">
-            @include('Backoffice.insurances.partials._table')
+            @include('Backoffice.insurances.partials._table', [
+                'insurances' => $insurances, 
+                'isGlobalView' => $isGlobalView ?? false,
+                'vehicle' => $vehicle ?? null,
+                'permissions' => $permissions ?? []
+            ])
         </div>
 
         @if(isset($insurances) && $insurances->total() > 0)

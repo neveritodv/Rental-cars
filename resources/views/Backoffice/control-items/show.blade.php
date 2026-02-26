@@ -82,9 +82,12 @@
                         <i class="ti ti-arrow-left me-1"></i> Retour à la liste
                     </a>
                     <div>
+                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                         <a href="{{ route('backoffice.control-items.edit', $item) }}" class="btn btn-primary me-2">
                             <i class="ti ti-edit me-1"></i>Modifier
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -149,12 +152,24 @@
                                     <div class="info-label">Contrôle associé</div>
                                     <div class="info-value">
                                         @if($item->vehicleControl)
-                                            <a href="{{ route('backoffice.controls.show', $item->vehicleControl) }}">
-                                                {{ $item->vehicleControl->control_number }}
-                                            </a>
+                                            {{-- Lien vers contrôle - contrôlé par permission VIEW sur contrôles --}}
+                                            @can('vehicle-controls.general.view')
+                                                <a href="{{ route('backoffice.controls.show', $item->vehicleControl) }}">
+                                                    {{ $item->vehicleControl->control_number }}
+                                                </a>
+                                            @else
+                                                <span>{{ $item->vehicleControl->control_number }}</span>
+                                            @endcan
                                             <br>
                                             <small class="text-muted">
-                                                Véhicule: {{ $item->vehicleControl->vehicle->registration_number ?? 'N/A' }}
+                                                Véhicule: 
+                                                @can('vehicles.general.view')
+                                                    <a href="{{ route('backoffice.vehicles.show', $item->vehicleControl->vehicle) }}">
+                                                        {{ $item->vehicleControl->vehicle->registration_number ?? 'N/A' }}
+                                                    </a>
+                                                @else
+                                                    {{ $item->vehicleControl->vehicle->registration_number ?? 'N/A' }}
+                                                @endcan
                                             </small>
                                         @else
                                             <span class="text-muted">Non associé</span>

@@ -1,16 +1,22 @@
+@props(['user'])
+
 <div class="dropdown">
     <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <i class="ti ti-dots-vertical"></i>
     </button>
 
     <ul class="dropdown-menu dropdown-menu-end p-2">
-
+        {{-- Voir détails - contrôlé par permission VIEW --}}
+        @can('users.general.view')
         <li>
             <a class="dropdown-item rounded-1" href="{{ route('backoffice.users.show', $user) }}">
                 <i class="ti ti-eye me-1"></i>View Details
             </a>
         </li>
+        @endcan
 
+        {{-- Modifier - contrôlé par permission EDIT --}}
+        @can('users.general.edit')
         <li>
             <a class="dropdown-item rounded-1" href="javascript:void(0);"
                data-bs-toggle="modal"
@@ -25,7 +31,10 @@
                 <i class="ti ti-edit me-1"></i>Modifier
             </a>
         </li>
+        @endcan
 
+        {{-- Supprimer - contrôlé par permission DELETE --}}
+        @can('users.general.delete')
         <li>
             <a class="dropdown-item rounded-1" href="javascript:void(0);"
                data-bs-toggle="modal"
@@ -35,6 +44,6 @@
                 <i class="ti ti-trash me-1"></i>Supprimer
             </a>
         </li>
-
+        @endcan
     </ul>
 </div>

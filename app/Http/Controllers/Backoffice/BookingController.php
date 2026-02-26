@@ -23,6 +23,11 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('bookings.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les réservations.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = Booking::where('agency_id', $agencyId)
@@ -93,7 +98,16 @@ class BookingController extends Controller
         $clients = Client::where('agency_id', $agencyId)->orderBy('first_name')->get();
         $vehicles = Vehicle::where('agency_id', $agencyId)->orderBy('registration_number')->get();
 
-        return view('backoffice.bookings.index', compact('bookings', 'clients', 'vehicles'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('bookings.general.view'),
+            'can_create' => auth()->user()->can('bookings.general.create'),
+            'can_edit' => auth()->user()->can('bookings.general.edit'),
+            'can_delete' => auth()->user()->can('bookings.general.delete'),
+            'can_convert' => auth()->user()->can('bookings.general.edit'), // Convertir nécessite permission edit
+        ];
+
+        return view('backoffice.bookings.index', compact('bookings', 'clients', 'vehicles', 'permissions'));
     }
 
     /**
@@ -101,6 +115,11 @@ class BookingController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('bookings.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des réservations.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $clients = Client::where('agency_id', $agencyId)
@@ -121,6 +140,11 @@ class BookingController extends Controller
      */
     public function store(BookingStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('bookings.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des réservations.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -148,7 +172,6 @@ class BookingController extends Controller
 
             $booking = Booking::create($data);
 
-            // FIXED: Use correct module name 'booking' and the actual booking object
             $this->createNotification('store', 'booking', $booking);
 
             DB::commit();
@@ -179,11 +202,21 @@ class BookingController extends Controller
      */
     public function show(Booking $booking)
     {
-        $this->authorize('view', $booking);
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('bookings.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les réservations.');
+        }
 
         $booking->load(['client', 'vehicle', 'agency']);
 
-        return view('backoffice.bookings.show', compact('booking'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('bookings.general.edit'),
+            'can_delete' => auth()->user()->can('bookings.general.delete'),
+            'can_convert' => auth()->user()->can('bookings.general.edit'), // Convertir nécessite permission edit
+        ];
+
+        return view('backoffice.bookings.show', compact('booking', 'permissions'));
     }
 
     /**
@@ -191,7 +224,10 @@ class BookingController extends Controller
      */
     public function edit(Booking $booking)
     {
-        $this->authorize('update', $booking);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('bookings.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les réservations.');
+        }
 
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
@@ -206,7 +242,10 @@ class BookingController extends Controller
      */
     public function update(BookingUpdateRequest $request, Booking $booking)
     {
-        $this->authorize('update', $booking);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('bookings.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les réservations.');
+        }
 
         try {
             DB::beginTransaction();
@@ -235,7 +274,6 @@ class BookingController extends Controller
 
             $booking->update($data);
 
-            // ADDED: Create notification for update
             $this->createNotification('update', 'booking', $booking);
 
             DB::commit();
@@ -266,17 +304,17 @@ class BookingController extends Controller
      */
     public function destroy(Booking $booking)
     {
-         $item->delete();
-        $this->authorize('delete', $booking);
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('bookings.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les réservations.');
+        }
 
         try {
             DB::beginTransaction();
 
-            // Store booking data for notification before delete
             $bookingData = clone $booking;
             $booking->delete();
 
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'booking', $bookingData);
 
             DB::commit();
@@ -307,7 +345,10 @@ class BookingController extends Controller
      */
     public function updateStatus(Request $request, Booking $booking)
     {
-        $this->authorize('update', $booking);
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('bookings.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les réservations.');
+        }
 
         $request->validate([
             'status' => ['required', 'in:pending,confirmed,cancelled,converted'],
@@ -317,7 +358,6 @@ class BookingController extends Controller
             $oldStatus = $booking->status;
             $booking->update(['status' => $request->status]);
 
-            // ADDED: Create notification for status change
             $this->createNotification('status', 'booking', $booking);
 
             return redirect()
@@ -345,7 +385,10 @@ class BookingController extends Controller
      */
     public function convertToContract(Booking $booking)
     {
-        $this->authorize('update', $booking);
+        // ✅ Vérifier la permission EDIT (pour convertir)
+        if (!auth()->user()->can('bookings.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de convertir les réservations.');
+        }
 
         try {
             DB::beginTransaction();
@@ -353,11 +396,7 @@ class BookingController extends Controller
             // Update booking status
             $booking->update(['status' => 'converted']);
 
-            // ADDED: Create notification for conversion
             $this->createNotification('status', 'booking', $booking);
-
-            // Here you would create a contract from the booking
-            // This is a placeholder - implement according to your business logic
 
             DB::commit();
 
@@ -394,6 +433,11 @@ class BookingController extends Controller
      */
     public function calendar(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('bookings.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les réservations.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $bookings = Booking::where('agency_id', $agencyId)

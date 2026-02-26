@@ -21,6 +21,11 @@ class InvoiceItemController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('invoice-items.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les items de facture.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = InvoiceItem::with(['invoice.client'])
@@ -65,7 +70,15 @@ class InvoiceItemController extends Controller
         // Get invoices for filter
         $invoices = Invoice::where('agency_id', $agencyId)->orderBy('invoice_number')->get();
 
-        return view('backoffice.invoice-items.index', compact('items', 'invoices'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('invoice-items.general.view'),
+            'can_create' => auth()->user()->can('invoice-items.general.create'),
+            'can_edit' => auth()->user()->can('invoice-items.general.edit'),
+            'can_delete' => auth()->user()->can('invoice-items.general.delete'),
+        ];
+
+        return view('backoffice.invoice-items.index', compact('items', 'invoices', 'permissions'));
     }
 
     /**
@@ -73,6 +86,11 @@ class InvoiceItemController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('invoice-items.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des items de facture.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         $invoices = Invoice::where('agency_id', $agencyId)->orderBy('invoice_number')->get();
         
@@ -84,6 +102,11 @@ class InvoiceItemController extends Controller
      */
     public function store(InvoiceItemStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('invoice-items.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des items de facture.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -125,7 +148,6 @@ class InvoiceItemController extends Controller
             // Update invoice totals
             $this->updateInvoiceTotals($invoice);
             
-            // FIXED: Use correct module name 'invoice-item' and the actual invoiceItem object
             $this->createNotification('store', 'invoice-item', $invoiceItem);
 
             DB::commit();
@@ -156,6 +178,11 @@ class InvoiceItemController extends Controller
      */
     public function show(InvoiceItem $invoiceItem)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('invoice-items.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les items de facture.');
+        }
+
         // Check if the item belongs to the user's agency
         if ($invoiceItem->invoice->agency_id !== Auth::guard('backoffice')->user()->agency_id) {
             abort(403);
@@ -163,7 +190,13 @@ class InvoiceItemController extends Controller
 
         $invoiceItem->load(['invoice.client']);
 
-        return view('backoffice.invoice-items.show', compact('invoiceItem'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('invoice-items.general.edit'),
+            'can_delete' => auth()->user()->can('invoice-items.general.delete'),
+        ];
+
+        return view('backoffice.invoice-items.show', compact('invoiceItem', 'permissions'));
     }
 
     /**
@@ -171,6 +204,11 @@ class InvoiceItemController extends Controller
      */
     public function edit(InvoiceItem $invoiceItem)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('invoice-items.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les items de facture.');
+        }
+
         if ($invoiceItem->invoice->agency_id !== Auth::guard('backoffice')->user()->agency_id) {
             abort(403);
         }
@@ -186,6 +224,11 @@ class InvoiceItemController extends Controller
      */
     public function update(InvoiceItemUpdateRequest $request, InvoiceItem $invoiceItem)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('invoice-items.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les items de facture.');
+        }
+
         if ($invoiceItem->invoice->agency_id !== Auth::guard('backoffice')->user()->agency_id) {
             abort(403);
         }
@@ -230,7 +273,6 @@ class InvoiceItemController extends Controller
                 $this->updateInvoiceTotals($newInvoice);
             }
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'invoice-item', $invoiceItem);
 
             DB::commit();
@@ -261,6 +303,11 @@ class InvoiceItemController extends Controller
      */
     public function destroy(InvoiceItem $invoiceItem)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('invoice-items.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les items de facture.');
+        }
+
         if ($invoiceItem->invoice->agency_id !== Auth::guard('backoffice')->user()->agency_id) {
             abort(403);
         }
@@ -273,14 +320,13 @@ class InvoiceItemController extends Controller
             // Store invoice item data for notification before delete
             $invoiceItemData = clone $invoiceItem;
             $invoiceItem->delete();
- $item->delete();
+
             // Get fresh invoice with items loaded
             $invoice = Invoice::with('items')->find($invoiceId);
             
             // Update invoice totals
             $this->updateInvoiceTotals($invoice);
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'invoice-item', $invoiceItemData);
 
             DB::commit();

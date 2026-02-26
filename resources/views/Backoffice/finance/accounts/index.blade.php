@@ -32,23 +32,14 @@
     .badge-success { background: #d4edda; color: #155724; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     .badge-secondary { background: #e2e3e5; color: #383d41; padding: 0.35rem 0.75rem; border-radius: 50px; font-weight: 500; }
     
-    .table-responsive { 
-        overflow: visible !important; 
+    .table-responsive, 
+    .custom-datatable-filter, 
+    .dataTables_wrapper {
+        overflow: visible !important;
     }
     
     .dropdown-menu {
         z-index: 9999 !important;
-        display: block;
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(-10px);
-        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-    }
-    
-    .dropdown-menu.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
     }
     
     .form-check {
@@ -139,12 +130,14 @@
                         </div>
                     </div>
                     
-                    <!-- Add Button -->
-                    <div class="mb-0">
-                        <a href="{{ route('backoffice.finance.accounts.create') }}" class="btn btn-primary d-flex align-items-center">
-                            <i class="ti ti-plus me-2"></i>Nouveau compte
-                        </a>
-                    </div>
+                    <!-- Add Button - contrôlé par permission CREATE -->
+                    @can('financial-accounts.general.create')
+                        <div class="mb-0">
+                            <a href="{{ route('backoffice.finance.accounts.create') }}" class="btn btn-primary d-flex align-items-center">
+                                <i class="ti ti-plus me-2"></i>Nouveau compte
+                            </a>
+                        </div>
+                    @endcan
                 </div>
             </div>
 
@@ -181,7 +174,7 @@
 
         <!-- Table -->
         <div class="custom-datatable-filter table-responsive">
-            @include('backoffice.finance.accounts.partials._table')
+            @include('backoffice.finance.accounts.partials._table', ['accounts' => $accounts])
         </div>
 
         <!-- Pagination -->

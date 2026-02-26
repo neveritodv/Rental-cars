@@ -23,6 +23,11 @@ class ControlController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-controls.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrôles.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
 
         $query = VehicleControl::with(['vehicle.model.brand', 'rentalContract', 'performer'])
@@ -97,7 +102,15 @@ class ControlController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('Backoffice.controls.index', compact('controls', 'vehicles', 'rentalContracts'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-controls.general.view'),
+            'can_create' => auth()->user()->can('vehicle-controls.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-controls.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-controls.general.delete'),
+        ];
+
+        return view('Backoffice.controls.index', compact('controls', 'vehicles', 'rentalContracts', 'permissions'));
     }
 
     /**
@@ -105,6 +118,11 @@ class ControlController extends Controller
      */
     public function create()
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-controls.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrôles.');
+        }
+
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         
         $vehicles = Vehicle::with(['model.brand'])
@@ -124,6 +142,11 @@ class ControlController extends Controller
      */
     public function store(VehicleControlStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-controls.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des contrôles.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -138,7 +161,6 @@ class ControlController extends Controller
 
             $control = VehicleControl::create($data);
             
-            // Already have this notification - GOOD!
             $this->createNotification('store', 'control', $control);
             
             DB::commit();
@@ -169,6 +191,11 @@ class ControlController extends Controller
      */
     public function show(VehicleControl $control)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-controls.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les contrôles.');
+        }
+
         // Check if control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($control->agency_id !== $agencyId) {
@@ -177,7 +204,13 @@ class ControlController extends Controller
 
         $control->load(['vehicle', 'rentalContract', 'performer', 'agency']);
 
-        return view('Backoffice.controls.show', compact('control'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-controls.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-controls.general.delete'),
+        ];
+
+        return view('Backoffice.controls.show', compact('control', 'permissions'));
     }
 
     /**
@@ -185,6 +218,11 @@ class ControlController extends Controller
      */
     public function edit(VehicleControl $control)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-controls.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrôles.');
+        }
+
         // Check if control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($control->agency_id !== $agencyId) {
@@ -208,6 +246,11 @@ class ControlController extends Controller
      */
     public function update(VehicleControlUpdateRequest $request, VehicleControl $control) 
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-controls.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les contrôles.');
+        }
+
         // Check if control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($control->agency_id !== $agencyId) {
@@ -221,7 +264,6 @@ class ControlController extends Controller
             
             $control->update($data);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'control', $control);
 
             DB::commit();
@@ -252,6 +294,11 @@ class ControlController extends Controller
      */
     public function destroy(VehicleControl $control)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-controls.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les contrôles.');
+        }
+
         // Check if control belongs to user's agency
         $agencyId = Auth::guard('backoffice')->user()->agency_id;
         if ($control->agency_id !== $agencyId) {
@@ -261,11 +308,9 @@ class ControlController extends Controller
         try {
             DB::beginTransaction();
 
-            // Store control data for notification before delete
             $controlData = clone $control;
             $control->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'control', $controlData);
             
             DB::commit();

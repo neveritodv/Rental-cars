@@ -1,3 +1,5 @@
+@props(['model'])
+
 <div class="dropdown">
     <button
         class="btn btn-icon btn-sm btn-light"
@@ -10,20 +12,33 @@
     </button>
 
     <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 180px;">
+        {{-- Voir détails - contrôlé par permission VIEW --}}
+        @can('vehicle-models.general.view')
         <li>
-<a class="dropdown-item rounded-1 d-flex align-items-center edit-model-btn"
-   href="javascript:void(0);"
-   data-id="{{ $model->id }}"
-   data-name="{{ $model->name }}"
-   data-brand-id="{{ $model->vehicle_brand_id }}"
-   data-status="{{ $model->status }}">
-    <i class="ti ti-edit me-2"></i> Modifier
-</a>
-
+            <a class="dropdown-item rounded-1 d-flex align-items-center" 
+               href="{{ route('backoffice.vehicle-models.show', $model) }}">
+                <i class="ti ti-eye me-2"></i> Voir détails
+            </a>
         </li>
+        @endcan
 
+        {{-- Modifier - contrôlé par permission EDIT --}}
+        @can('vehicle-models.general.edit')
+        <li>
+            <a class="dropdown-item rounded-1 d-flex align-items-center edit-model-btn"
+               href="javascript:void(0);"
+               data-id="{{ $model->id }}"
+               data-name="{{ $model->name }}"
+               data-brand-id="{{ $model->vehicle_brand_id }}"
+               data-status="{{ $model->status }}">
+                <i class="ti ti-edit me-2"></i> Modifier
+            </a>
+        </li>
+        @endcan
+
+        {{-- Supprimer - contrôlé par permission DELETE --}}
+        @can('vehicle-models.general.delete')
         <li><hr class="dropdown-divider my-1"></li>
-
         <li>
             <a class="dropdown-item rounded-1 d-flex align-items-center text-danger"
                href="javascript:void(0);"
@@ -33,5 +48,6 @@
                 <i class="ti ti-trash me-2"></i> Supprimer
             </a>
         </li>
+        @endcan
     </ul>
 </div>

@@ -22,6 +22,11 @@ class OilChangeController extends Controller
      */
     public function index(Request $request, $vehicleId)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-oil-changes.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les vidanges.');
+        }
+
         // ============ GLOBAL VIEW - ALL VEHICLES ============
         if ($vehicleId === 'all') {
             $query = VehicleOilChange::with('vehicle');
@@ -96,11 +101,20 @@ class OilChangeController extends Controller
                 ->orderBy('mechanic_name')
                 ->pluck('mechanic_name');
 
+            // ✅ Passer les permissions à la vue
+            $permissions = [
+                'can_view' => auth()->user()->can('vehicle-oil-changes.general.view'),
+                'can_create' => auth()->user()->can('vehicle-oil-changes.general.create'),
+                'can_edit' => auth()->user()->can('vehicle-oil-changes.general.edit'),
+                'can_delete' => auth()->user()->can('vehicle-oil-changes.general.delete'),
+            ];
+
             return view('Backoffice.oil-changes.index', [
                 'vehicle' => null,
                 'oilChanges' => $oilChanges,
                 'availableMechanics' => $availableMechanics,
-                'isGlobalView' => true
+                'isGlobalView' => true,
+                'permissions' => $permissions
             ]);
         }
         
@@ -188,17 +202,35 @@ class OilChangeController extends Controller
             ->orderBy('mechanic_name')
             ->pluck('mechanic_name');
 
-        return view('Backoffice.oil-changes.index', compact('vehicle', 'oilChanges', 'availableMechanics'));
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_view' => auth()->user()->can('vehicle-oil-changes.general.view'),
+            'can_create' => auth()->user()->can('vehicle-oil-changes.general.create'),
+            'can_edit' => auth()->user()->can('vehicle-oil-changes.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-oil-changes.general.delete'),
+        ];
+
+        return view('Backoffice.oil-changes.index', compact('vehicle', 'oilChanges', 'availableMechanics', 'permissions'));
     }
 
     public function create(Vehicle $vehicle = null)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-oil-changes.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des vidanges.');
+        }
+
         $vehicles = Vehicle::orderBy('registration_number')->get();
         return view('Backoffice.oil-changes.partials._modal_create', compact('vehicle', 'vehicles'));
     }
 
     public function store(VehicleOilChangeStoreRequest $request)
     {
+        // ✅ Vérifier la permission CREATE
+        if (!auth()->user()->can('vehicle-oil-changes.general.create')) {
+            abort(403, 'Vous n\'avez pas la permission de créer des vidanges.');
+        }
+
         try {
             DB::beginTransaction();
             $data = $request->validated();
@@ -214,7 +246,6 @@ class OilChangeController extends Controller
                 'observations' => $data['observations'] ?? null,
             ]);
             
-            // FIXED: Use correct module name 'oil-change' and the actual oilChange object
             $this->createNotification('store', 'oil-change', $oilChange);
             
             DB::commit();
@@ -241,13 +272,30 @@ class OilChangeController extends Controller
 
     public function show(Vehicle $vehicle, VehicleOilChange $oilChange)
     {
+        // ✅ Vérifier la permission VIEW
+        if (!auth()->user()->can('vehicle-oil-changes.general.view')) {
+            abort(403, 'Vous n\'avez pas la permission de voir les vidanges.');
+        }
+
         $this->authorize('view', $vehicle);
         $this->verifyResource($vehicle, $oilChange);
-        return view('Backoffice.oil-changes.show', compact('vehicle', 'oilChange'));
+
+        // ✅ Passer les permissions à la vue
+        $permissions = [
+            'can_edit' => auth()->user()->can('vehicle-oil-changes.general.edit'),
+            'can_delete' => auth()->user()->can('vehicle-oil-changes.general.delete'),
+        ];
+
+        return view('Backoffice.oil-changes.show', compact('vehicle', 'oilChange', 'permissions'));
     }
 
     public function edit(Vehicle $vehicle, VehicleOilChange $oilChange)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-oil-changes.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les vidanges.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $oilChange);
         $vehicles = Vehicle::orderBy('registration_number')->get();
@@ -256,6 +304,11 @@ class OilChangeController extends Controller
 
     public function update(VehicleOilChangeUpdateRequest $request, Vehicle $vehicle, VehicleOilChange $oilChange)
     {
+        // ✅ Vérifier la permission EDIT
+        if (!auth()->user()->can('vehicle-oil-changes.general.edit')) {
+            abort(403, 'Vous n\'avez pas la permission de modifier les vidanges.');
+        }
+
         $this->authorize('update', $vehicle);
         $this->verifyResource($vehicle, $oilChange);
 
@@ -273,7 +326,6 @@ class OilChangeController extends Controller
                 'observations' => $data['observations'] ?? null,
             ]);
             
-            // ADDED: Create notification for update
             $this->createNotification('update', 'oil-change', $oilChange);
 
             DB::commit();
@@ -304,6 +356,11 @@ class OilChangeController extends Controller
      */
     public function destroy(Request $request, $vehicleId, VehicleOilChange $oilChange)
     {
+        // ✅ Vérifier la permission DELETE
+        if (!auth()->user()->can('vehicle-oil-changes.general.delete')) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer les vidanges.');
+        }
+
         // Verify the oil change belongs to the vehicle
         if ($oilChange->vehicle_id != $vehicleId) {
             abort(404);
@@ -314,12 +371,10 @@ class OilChangeController extends Controller
         try {
             DB::beginTransaction();
             
-            // Store oil change data for notification before delete
             $oilChangeData = clone $oilChange;
             $vehicleId = $oilChange->vehicle_id;
             $oilChange->delete();
             
-            // ADDED: Create notification for delete
             $this->createNotification('destroy', 'oil-change', $oilChangeData);
             
             DB::commit();

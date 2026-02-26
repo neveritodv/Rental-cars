@@ -87,9 +87,14 @@
                                             <div class="mb-3">
                                                 <h6 class="fs-14 fw-semibold mb-1">Véhicule</h6>
                                                 <p class="fs-13">
-                                                    <a href="{{ route('backoffice.vehicles.show', $vehicle->id) }}" class="text-primary">
-                                                        {{ $vehicle->registration_number }} - {{ $vehicle->registration_city ?? '' }}
-                                                    </a>
+                                                    {{-- Lien vers véhicule - contrôlé par permission VIEW sur véhicules --}}
+                                                    @can('vehicles.general.view')
+                                                        <a href="{{ route('backoffice.vehicles.show', $vehicle->id) }}" class="text-primary">
+                                                            {{ $vehicle->registration_number }} - {{ $vehicle->registration_city ?? '' }}
+                                                        </a>
+                                                    @else
+                                                        <span>{{ $vehicle->registration_number }} - {{ $vehicle->registration_city ?? '' }}</span>
+                                                    @endcan
                                                 </p>
                                             </div>
                                         </div>
@@ -158,6 +163,8 @@
                                             </div>
                                         </div>
 
+                                        {{-- Bouton Modifier - contrôlé par permission EDIT --}}
+                                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                         <div class="col-lg-12">
                                             <a href="{{ route('backoffice.vehicles.insurances.edit', [$vehicle->id, $insurance->id]) }}"
                                                class="btn btn-primary btn-sm d-inline-flex align-items-center">
@@ -165,6 +172,7 @@
                                                 Modifier
                                             </a>
                                         </div>
+                                        @endif
 
                                     </div>
                                 </div>
@@ -176,10 +184,12 @@
                                 <div class="text-muted">
                                     <div class="d-flex align-items-center justify-content-between mb-3">
                                         <h6>Notes internes</h6>
+                                        @if(isset($permissions['can_edit']) && $permissions['can_edit'])
                                         <a href="{{ route('backoffice.vehicles.insurances.edit', [$vehicle->id, $insurance->id]) }}" 
                                            class="btn btn-sm btn-primary">
                                             <i class="ti ti-edit me-1"></i>Éditer
                                         </a>
+                                        @endif
                                     </div>
                                     @if($insurance->notes)
                                         <div class="p-3 bg-light-100 rounded">
