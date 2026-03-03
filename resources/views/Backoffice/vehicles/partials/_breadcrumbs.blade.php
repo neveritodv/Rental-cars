@@ -1,36 +1,62 @@
-<div class="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
-    <div class="my-auto mb-2">
-        <h4 class="mb-1">Tous les véhicules</h4>
-        <nav>
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('backoffice.dashboard') }}">Accueil</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Véhicules</li>
-            </ol>
-        </nav>
-    </div>
+@php
+    $agencyId = auth()->guard('backoffice')->user()->agency_id;
+    $totalVehicles = App\Models\Vehicle::where('agency_id', $agencyId)->count();
+    $availableVehicles = App\Models\Vehicle::where('agency_id', $agencyId)->where('status', 'available')->count();
+    $rentedVehicles = App\Models\Vehicle::where('agency_id', $agencyId)->where('status', 'rented')->count();
+    $maintenanceVehicles = App\Models\Vehicle::where('agency_id', $agencyId)->where('status', 'maintenance')->count();
+@endphp
 
-    <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
-        <div class="mb-2 me-2">
-            <a href="javascript:window.print();" class="btn btn-white d-flex align-items-center">
-                <i class="ti ti-printer me-2"></i>Imprimer
-            </a>
-        </div>
-
-        <div class="mb-2 me-2">
-            <div class="dropdown">
-                <a href="javascript:void(0);" class="btn btn-dark d-inline-flex align-items-center">
-                    <i class="ti ti-upload me-1"></i>Exporter
-                </a>
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Total Véhicules</h6>
+                        <h3 class="text-white mb-0">{{ $totalVehicles }}</h3>
+                    </div>
+                    <i class="ti ti-car fs-40 opacity-50"></i>
+                </div>
             </div>
         </div>
-
-        <div class="mb-2">
-            {{-- ✅ Redirection vers la page create (pas de modal) --}}
-            <a href="{{ route('backoffice.vehicles.create') }}" class="btn btn-primary d-flex align-items-center">
-                <i class="ti ti-plus me-2"></i>Ajouter un véhicule
-            </a>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Disponibles</h6>
+                        <h3 class="text-white mb-0">{{ $availableVehicles }}</h3>
+                    </div>
+                    <i class="ti ti-circle-check fs-40 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">En location</h6>
+                        <h3 class="text-white mb-0">{{ $rentedVehicles }}</h3>
+                    </div>
+                    <i class="ti ti-clock fs-40 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Maintenance</h6>
+                        <h3 class="text-white mb-0">{{ $maintenanceVehicles }}</h3>
+                    </div>
+                    <i class="ti ti-tool fs-40 opacity-50"></i>
+                </div>
+            </div>
         </div>
     </div>
 </div>

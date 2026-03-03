@@ -1,42 +1,64 @@
-<div class="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
-    <div class="my-auto mb-2">
-        <h4 class="mb-1">
-            @if(request()->routeIs('backoffice.clients.create'))
-                Ajouter un client
-            @elseif(request()->routeIs('backoffice.clients.edit'))
-                Modifier le client
-            @elseif(request()->routeIs('backoffice.clients.show'))
-                Détails du client
-            @else
-                Clients
-            @endif
-        </h4>
-        <nav>
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('backoffice.dashboard') }}">Accueil</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="{{ route('backoffice.clients.index') }}">Clients</a>
-                </li>
-                @if(request()->routeIs('backoffice.clients.show'))
-                    <li class="breadcrumb-item active" aria-current="page">Détails</li>
-                @elseif(request()->routeIs('backoffice.clients.edit'))
-                    <li class="breadcrumb-item active" aria-current="page">Modification</li>
-                @elseif(request()->routeIs('backoffice.clients.create'))
-                    <li class="breadcrumb-item active" aria-current="page">Nouveau</li>
-                @else
-                    <li class="breadcrumb-item active" aria-current="page">Liste</li>
-                @endif
-            </ol>
-        </nav>
-    </div>
-    
-    @if(request()->routeIs('backoffice.clients.show'))
-        <div class="mt-2 mt-md-0">
-            <a href="{{ route('backoffice.clients.index') }}" class="btn btn-sm btn-white">
-                <i class="ti ti-arrow-left me-1"></i>Retour à la liste
-            </a>
+@php
+    $agencyId = auth()->guard('backoffice')->user()->agency_id;
+    $totalClients = App\Models\Client::where('agency_id', $agencyId)->count();
+    $activeClients = App\Models\Client::where('agency_id', $agencyId)->where('status', 'active')->count();
+    $inactiveClients = App\Models\Client::where('agency_id', $agencyId)->where('status', 'inactive')->count();
+    $newThisMonth = App\Models\Client::where('agency_id', $agencyId)
+        ->whereMonth('created_at', now()->month)
+        ->count();
+@endphp
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Total Clients</h6>
+                        <h3 class="text-white mb-0">{{ $totalClients }}</h3>
+                    </div>
+                    <i class="ti ti-users fs-40 opacity-50"></i>
+                </div>
+            </div>
         </div>
-    @endif
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Actifs</h6>
+                        <h3 class="text-white mb-0">{{ $activeClients }}</h3>
+                    </div>
+                    <i class="ti ti-user-check fs-40 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Inactifs</h6>
+                        <h3 class="text-white mb-0">{{ $inactiveClients }}</h3>
+                    </div>
+                    <i class="ti ti-user-x fs-40 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Nouveaux (mois)</h6>
+                        <h3 class="text-white mb-0">{{ $newThisMonth }}</h3>
+                    </div>
+                    <i class="ti ti-user-plus fs-40 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
